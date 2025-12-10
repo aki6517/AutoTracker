@@ -28,7 +28,7 @@ export default defineConfig({
               external: ['electron'],
               output: {
                 format: 'cjs',
-                entryFileNames: 'preload.js',
+                entryFileNames: 'preload.cjs',
               },
             },
           },

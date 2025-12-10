@@ -47,12 +47,12 @@ export interface ElectronAPI {
   // プロジェクト
   projects: {
     getAll: (params?: { includeArchived?: boolean }) => Promise<Project[]>;
-    getById: (id: number) => Promise<Project | null>;
+    getById: (id: string) => Promise<Project | null>;
     create: (data: CreateProjectDTO) => Promise<Project>;
-    update: (id: number, data: UpdateProjectDTO) => Promise<Project>;
-    delete: (id: number) => Promise<{ success: boolean }>;
-    archive: (id: number) => Promise<Project>;
-    restore: (id: number) => Promise<Project>;
+    update: (id: string, data: UpdateProjectDTO) => Promise<Project>;
+    delete: (id: string) => Promise<{ success: boolean }>;
+    archive: (id: string) => Promise<Project>;
+    restore: (id: string) => Promise<Project>;
   };
 
   // エントリー

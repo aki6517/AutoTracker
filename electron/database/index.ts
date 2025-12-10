@@ -1,3 +1,4 @@
+import Database from 'better-sqlite3';
 import { getDatabaseService } from './database.service.js';
 import { Migrator } from './migrator.js';
 import { migration001 } from './migrations/001_initial.js';
@@ -22,5 +23,13 @@ export async function initializeDatabase(): Promise<void> {
   migrator.migrate(db);
 
   console.log('Database initialized successfully');
+}
+
+/**
+ * データベース接続を取得
+ */
+export function getDatabase(): Database.Database {
+  const dbService = getDatabaseService();
+  return dbService.connect();
 }
 

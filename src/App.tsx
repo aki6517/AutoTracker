@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
+import Projects from './pages/Projects';
 
 // プレースホルダーページ（後で実装）
 const Timeline = () => <div className="p-8 text-white">タイムライン（実装予定）</div>;
-const Projects = () => <div className="p-8 text-white">プロジェクト（実装予定）</div>;
 const Reports = () => <div className="p-8 text-white">レポート（実装予定）</div>;
 const Settings = () => <div className="p-8 text-white">設定（実装予定）</div>;
 

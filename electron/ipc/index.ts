@@ -1,4 +1,8 @@
 import { ipcMain, shell, app } from 'electron';
+import { projectRepository } from '../repositories/project.repository.js';
+
+// プロジェクト数の上限（Phase 1）
+const MAX_PROJECTS = 5;
 
 // IPCハンドラーの初期化
 export function initializeIpcHandlers() {
@@ -43,41 +47,102 @@ export function initializeIpcHandlers() {
   });
 
   // ========================================
-  // プロジェクト（プレースホルダー）
+  // プロジェクト
   // ========================================
-  ipcMain.handle('project:get-all', async (_event, _params) => {
-    // TODO: Issue #5で実装
-    return [];
+  ipcMain.handle('project:get-all', async (_event, params?: { includeArchived?: boolean }) => {
+    try {
+      const projects = projectRepository.findAll(params?.includeArchived ?? false);
+      return projects;
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('project:get-by-id', async (_event, _id) => {
-    // TODO: Issue #5で実装
-    return null;
+  ipcMain.handle('project:get-by-id', async (_event, id: string) => {
+    try {
+      return projectRepository.findById(id);
+    } catch (error) {
+      console.error('Error fetching project:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('project:create', async (_event, _data) => {
-    // TODO: Issue #5で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('project:create', async (_event, data: {
+    name: string;
+    clientName?: string;
+    color: string;
+    icon?: string;
+    hourlyRate?: number;
+    budgetHours?: number;
+  }) => {
+    try {
+      // プロジェクト数上限チェック
+      const currentCount = projectRepository.count(false);
+      if (currentCount >= MAX_PROJECTS) {
+        throw new Error(`Maximum number of projects (${MAX_PROJECTS}) reached. Archive or delete existing projects first.`);
+      }
+      return projectRepository.create(data);
+    } catch (error) {
+      console.error('Error creating project:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('project:update', async (_event, _id, _data) => {
-    // TODO: Issue #5で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('project:update', async (_event, id: string, data: {
+    name?: string;
+    clientName?: string;
+    color?: string;
+    icon?: string;
+    hourlyRate?: number;
+    budgetHours?: number;
+  }) => {
+    try {
+      const updated = projectRepository.update(id, data);
+      if (!updated) {
+        throw new Error('Project not found');
+      }
+      return updated;
+    } catch (error) {
+      console.error('Error updating project:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('project:delete', async (_event, _id) => {
-    // TODO: Issue #5で実装
-    return { success: false };
+  ipcMain.handle('project:delete', async (_event, id: string) => {
+    try {
+      const success = projectRepository.delete(id);
+      return { success };
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('project:archive', async (_event, _id) => {
-    // TODO: Issue #5で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('project:archive', async (_event, id: string) => {
+    try {
+      const archived = projectRepository.archive(id);
+      if (!archived) {
+        throw new Error('Project not found');
+      }
+      return archived;
+    } catch (error) {
+      console.error('Error archiving project:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('project:restore', async (_event, _id) => {
-    // TODO: Issue #5で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('project:restore', async (_event, id: string) => {
+    try {
+      const restored = projectRepository.restore(id);
+      if (!restored) {
+        throw new Error('Project not found');
+      }
+      return restored;
+    } catch (error) {
+      console.error('Error restoring project:', error);
+      throw error;
+    }
   });
 
   // ========================================

@@ -17,13 +17,13 @@ export type APIResult<T> = { success: true; data: T } | { success: false; error:
 // ========================================
 
 export interface Project {
-  id: number;
+  id: string;
   name: string;
-  clientName: string | null;
+  clientName?: string;
   color: string;
-  icon: string | null;
-  hourlyRate: number | null;
-  budgetHours: number | null;
+  icon?: string;
+  hourlyRate?: number;
+  budgetHours?: number;
   isArchived: boolean;
   createdAt: string;
   updatedAt: string;

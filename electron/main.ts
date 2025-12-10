@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeIpcHandlers } from './ipc/index.js';
+import { initializeDatabase } from './database/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,17 +48,25 @@ function createWindow() {
 }
 
 // アプリケーションの準備ができたらウィンドウを作成
-app.whenReady().then(() => {
-  // IPCハンドラーの初期化
-  initializeIpcHandlers();
+app.whenReady().then(async () => {
+  try {
+    // データベースの初期化
+    await initializeDatabase();
 
-  createWindow();
+    // IPCハンドラーの初期化
+    initializeIpcHandlers();
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
+    createWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  } catch (error) {
+    console.error('Failed to initialize application:', error);
+    app.quit();
+  }
 });
 
 // すべてのウィンドウが閉じられたら終了（macOSを除く）

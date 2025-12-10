@@ -23,7 +23,7 @@ export class Migrator {
         .get() as { version: number | null } | undefined;
 
       return result?.version ?? 0;
-    } catch (error) {
+    } catch {
       // schema_migrationsテーブルが存在しない場合は0を返す
       return 0;
     }

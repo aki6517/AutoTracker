@@ -61,6 +61,52 @@ npm install
 npm run dev
 ```
 
+### 開発コマンド
+
+```bash
+# 開発サーバー起動（Electron + Vite HMR）
+npm run dev
+
+# ビルド（TypeScript + Vite + Electron Builder）
+npm run build
+
+# 型チェック
+npm run type-check
+
+# Lint実行
+npm run lint
+
+# Lint自動修正
+npm run lint:fix
+
+# コードフォーマット
+npm run format
+
+# フォーマットチェック
+npm run format:check
+```
+
+### プロジェクト構造
+
+```
+autotracker/
+├── electron/          # Electron Main Process
+│   ├── main.ts        # エントリーポイント
+│   ├── preload.ts     # Preload Script
+│   └── ipc/           # IPC Handlers
+├── src/               # React Renderer Process
+│   ├── main.tsx       # Reactエントリーポイント
+│   ├── App.tsx        # ルートコンポーネント
+│   ├── pages/         # ページコンポーネント
+│   ├── components/    # UIコンポーネント
+│   └── styles/        # スタイル
+├── shared/            # 共有コード
+│   └── types/         # 型定義
+├── dist/               # ビルド出力（Renderer）
+├── dist-electron/      # ビルド出力（Main/Preload）
+└── release/           # パッケージ出力
+```
+
 ## ドキュメント
 
 - [要件定義書](01_requirements.md)

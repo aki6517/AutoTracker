@@ -1,0 +1,76 @@
+import { app, BrowserWindow } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { initializeIpcHandlers } from './ipc/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// 開発環境かどうか
+const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+let mainWindow: BrowserWindow | null = null;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    backgroundColor: '#0D0D0D',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: false,
+    },
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    show: false,
+  });
+
+  // ウィンドウが準備できたら表示
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+  });
+
+  // 開発環境ではViteの開発サーバー、本番環境ではビルド済みファイルを読み込む
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+// アプリケーションの準備ができたらウィンドウを作成
+app.whenReady().then(() => {
+  // IPCハンドラーの初期化
+  initializeIpcHandlers();
+
+  createWindow();
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+// すべてのウィンドウが閉じられたら終了（macOSを除く）
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+// セキュリティ: 新しいウィンドウの作成を制限
+app.on('web-contents-created', (_event, contents) => {
+  contents.on('new-window', (event) => {
+    event.preventDefault();
+  });
+});
+

@@ -1,5 +1,7 @@
 import { ipcMain, shell, app } from 'electron';
 import { projectRepository } from '../repositories/project.repository.js';
+import { screenshotRepository } from '../repositories/screenshot.repository.js';
+import { getScreenCaptureService } from '../services/screen-capture.service.js';
 
 // プロジェクト数の上限（Phase 1）
 const MAX_PROJECTS = 5;
@@ -244,16 +246,90 @@ export function initializeIpcHandlers() {
   });
 
   // ========================================
-  // スクリーンショット（プレースホルダー）
+  // スクリーンショット
   // ========================================
-  ipcMain.handle('screenshot:get-by-entry', async (_event, _entryId) => {
-    // TODO: Issue #6で実装
-    return [];
+  ipcMain.handle('screenshot:get-by-entry', async (_event, entryId: string) => {
+    try {
+      const screenshots = screenshotRepository.findByEntryId(entryId);
+      return screenshots.map((s) => ({
+        id: s.id,
+        entryId: s.entryId,
+        timestamp: s.capturedAt,
+        windowTitle: s.metadata?.windowTitle ?? null,
+        url: s.metadata?.url ?? null,
+        appName: s.metadata?.appName ?? null,
+      }));
+    } catch (error) {
+      console.error('Error fetching screenshots:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('screenshot:get-image', async (_event, _id) => {
-    // TODO: Issue #6で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('screenshot:get-image', async (_event, id: string) => {
+    try {
+      const screenCaptureService = getScreenCaptureService();
+      const result = await screenCaptureService.getScreenshot(id);
+      if (!result) {
+        throw new Error('Screenshot not found');
+      }
+      // Base64エンコードして返す
+      return {
+        data: result.data.toString('base64'),
+        mimeType: result.mimeType,
+      };
+    } catch (error) {
+      console.error('Error fetching screenshot image:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('screenshot:get-thumbnail', async (_event, id: string) => {
+    try {
+      const screenCaptureService = getScreenCaptureService();
+      const result = await screenCaptureService.getThumbnail(id);
+      if (!result) {
+        throw new Error('Thumbnail not found');
+      }
+      return {
+        data: result.data.toString('base64'),
+        mimeType: result.mimeType,
+      };
+    } catch (error) {
+      console.error('Error fetching thumbnail:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('screenshot:capture', async (_event, params: {
+    entryId: string;
+    metadata?: { windowTitle?: string; url?: string; appName?: string };
+  }) => {
+    try {
+      const screenCaptureService = getScreenCaptureService();
+      const result = await screenCaptureService.capture(params.entryId, params.metadata);
+      return {
+        id: result.id,
+        entryId: params.entryId,
+        timestamp: result.capturedAt,
+        windowTitle: result.metadata.windowTitle ?? null,
+        url: result.metadata.url ?? null,
+        appName: result.metadata.appName ?? null,
+      };
+    } catch (error) {
+      console.error('Error capturing screenshot:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('screenshot:delete', async (_event, id: string) => {
+    try {
+      const screenCaptureService = getScreenCaptureService();
+      const success = await screenCaptureService.delete(id);
+      return { success };
+    } catch (error) {
+      console.error('Error deleting screenshot:', error);
+      throw error;
+    }
   });
 
   // ========================================

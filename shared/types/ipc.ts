@@ -103,8 +103,14 @@ export interface ElectronAPI {
 
   // スクリーンショット
   screenshots: {
-    getByEntry: (entryId: number) => Promise<ScreenshotMeta[]>;
-    getImage: (id: number) => Promise<{ data: string; mimeType: string }>;
+    getByEntry: (entryId: string) => Promise<ScreenshotMeta[]>;
+    getImage: (id: string) => Promise<{ data: string; mimeType: string }>;
+    getThumbnail: (id: string) => Promise<{ data: string; mimeType: string }>;
+    capture: (params: {
+      entryId: string;
+      metadata?: { windowTitle?: string; url?: string; appName?: string };
+    }) => Promise<ScreenshotMeta>;
+    delete: (id: string) => Promise<{ success: boolean }>;
   };
 
   // AI使用状況

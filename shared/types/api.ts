@@ -233,8 +233,8 @@ export interface BudgetStatus {
 // ========================================
 
 export interface ScreenshotMeta {
-  id: number;
-  entryId: number;
+  id: string;
+  entryId: string;
   timestamp: string;
   windowTitle: string | null;
   url: string | null;

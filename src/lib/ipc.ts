@@ -33,3 +33,4 @@ export function getAPISafe() {
 // 型をエクスポート
 export type { ElectronAPI } from '../../shared/types/ipc';
 
+

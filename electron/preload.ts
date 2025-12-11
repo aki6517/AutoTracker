@@ -80,6 +80,9 @@ const electronAPI: ElectronAPI = {
   screenshots: {
     getByEntry: (entryId) => ipcRenderer.invoke('screenshot:get-by-entry', entryId),
     getImage: (id) => ipcRenderer.invoke('screenshot:get-image', id),
+    getThumbnail: (id) => ipcRenderer.invoke('screenshot:get-thumbnail', id),
+    capture: (params) => ipcRenderer.invoke('screenshot:capture', params),
+    delete: (id) => ipcRenderer.invoke('screenshot:delete', id),
   },
 
   // AI使用状況

@@ -90,32 +90,32 @@ export interface UpdateEntryDTO {
 // Rule関連
 // ========================================
 
-export type RuleType = 'window_title' | 'url' | 'keyword' | 'app_name' | 'file_path';
+export type RuleType = 'window_title' | 'url' | 'keyword' | 'app_name';
 
 export interface Rule {
-  id: number;
-  projectId: number;
+  id: string;
+  projectId: string;
   type: RuleType;
   pattern: string;
   priority: number;
-  isEnabled: boolean;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateRuleDTO {
-  projectId: number;
+  projectId: string;
   type: RuleType;
   pattern: string;
   priority?: number;
-  isEnabled?: boolean;
+  isActive?: boolean;
 }
 
 export interface UpdateRuleDTO {
   type?: RuleType;
   pattern?: string;
   priority?: number;
-  isEnabled?: boolean;
+  isActive?: boolean;
 }
 
 // ========================================

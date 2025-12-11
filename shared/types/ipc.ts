@@ -76,20 +76,35 @@ export interface ElectronAPI {
 
   // ルール
   rules: {
-    getByProject: (projectId: number) => Promise<Rule[]>;
+    getByProject: (projectId: string) => Promise<Rule[]>;
+    getAll: () => Promise<Rule[]>;
     create: (data: CreateRuleDTO) => Promise<Rule>;
-    update: (id: number, data: UpdateRuleDTO) => Promise<Rule>;
-    delete: (id: number) => Promise<{ success: boolean }>;
+    update: (id: string, data: UpdateRuleDTO) => Promise<Rule>;
+    delete: (id: string) => Promise<{ success: boolean }>;
+    toggleActive: (id: string) => Promise<Rule>;
+    reorder: (ruleIds: string[]) => Promise<{ success: boolean }>;
     test: (params: {
-      type: Rule['type'];
+      ruleType: Rule['type'];
       pattern: string;
       testData: {
         windowTitle?: string;
         url?: string;
         appName?: string;
-        filePath?: string;
+        keywords?: string[];
       };
     }) => Promise<{ matched: boolean; matchedText?: string }>;
+    match: (testData: {
+      windowTitle?: string;
+      url?: string;
+      appName?: string;
+      keywords?: string[];
+    }) => Promise<{
+      matched: boolean;
+      projectId: string | null;
+      projectName: string | null;
+      confidence: number;
+      matchedText?: string;
+    }>;
   };
 
   // レポート

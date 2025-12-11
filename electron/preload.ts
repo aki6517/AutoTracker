@@ -59,10 +59,14 @@ const electronAPI: ElectronAPI = {
   // ルール
   rules: {
     getByProject: (projectId) => ipcRenderer.invoke('rule:get-by-project', projectId),
+    getAll: () => ipcRenderer.invoke('rule:get-all'),
     create: (data) => ipcRenderer.invoke('rule:create', data),
     update: (id, data) => ipcRenderer.invoke('rule:update', id, data),
     delete: (id) => ipcRenderer.invoke('rule:delete', id),
+    toggleActive: (id) => ipcRenderer.invoke('rule:toggle-active', id),
+    reorder: (ruleIds) => ipcRenderer.invoke('rule:reorder', ruleIds),
     test: (params) => ipcRenderer.invoke('rule:test', params),
+    match: (testData) => ipcRenderer.invoke('rule:match', testData),
   },
 
   // レポート

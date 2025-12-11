@@ -1,8 +1,10 @@
 import { ipcMain, shell, app } from 'electron';
 import { projectRepository } from '../repositories/project.repository.js';
 import { screenshotRepository } from '../repositories/screenshot.repository.js';
+import { ruleRepository, type Rule } from '../repositories/rule.repository.js';
 import { getScreenCaptureService } from '../services/screen-capture.service.js';
 import { getWindowMonitorService } from '../services/window-monitor.service.js';
+import { getRuleMatchingService } from '../services/rule-matching.service.js';
 
 // プロジェクト数の上限（Phase 1）
 const MAX_PROJECTS = 5;
@@ -192,31 +194,146 @@ export function initializeIpcHandlers() {
   });
 
   // ========================================
-  // ルール（プレースホルダー）
+  // ルール
   // ========================================
-  ipcMain.handle('rule:get-by-project', async (_event, _projectId) => {
-    // TODO: Issue #8で実装
-    return [];
+  ipcMain.handle('rule:get-by-project', async (_event, projectId: string) => {
+    try {
+      return ruleRepository.findByProject(projectId);
+    } catch (error) {
+      console.error('Error fetching rules:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('rule:create', async (_event, _data) => {
-    // TODO: Issue #8で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('rule:get-all', async () => {
+    try {
+      return ruleRepository.findAll();
+    } catch (error) {
+      console.error('Error fetching all rules:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('rule:update', async (_event, _id, _data) => {
-    // TODO: Issue #8で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('rule:create', async (_event, data: {
+    projectId: string;
+    ruleType: Rule['ruleType'];
+    pattern: string;
+    priority?: number;
+    isActive?: boolean;
+  }) => {
+    try {
+      // パターンの妥当性を検証
+      const ruleMatchingService = getRuleMatchingService();
+      const validation = ruleMatchingService.validatePattern(data.ruleType, data.pattern);
+      if (!validation.valid) {
+        throw new Error(validation.error);
+      }
+      
+      // ルール数上限チェック（プロジェクトあたり10個）
+      const count = ruleRepository.countByProject(data.projectId);
+      if (count >= 10) {
+        throw new Error('Maximum number of rules (10) per project reached');
+      }
+      
+      return ruleRepository.create(data);
+    } catch (error) {
+      console.error('Error creating rule:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('rule:delete', async (_event, _id) => {
-    // TODO: Issue #8で実装
-    return { success: false };
+  ipcMain.handle('rule:update', async (_event, id: string, data: {
+    ruleType?: Rule['ruleType'];
+    pattern?: string;
+    priority?: number;
+    isActive?: boolean;
+  }) => {
+    try {
+      // パターンが更新される場合は妥当性を検証
+      if (data.pattern !== undefined && data.ruleType !== undefined) {
+        const ruleMatchingService = getRuleMatchingService();
+        const validation = ruleMatchingService.validatePattern(data.ruleType, data.pattern);
+        if (!validation.valid) {
+          throw new Error(validation.error);
+        }
+      }
+      
+      const updated = ruleRepository.update(id, data);
+      if (!updated) {
+        throw new Error('Rule not found');
+      }
+      return updated;
+    } catch (error) {
+      console.error('Error updating rule:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('rule:test', async (_event, _params) => {
-    // TODO: Issue #8で実装
-    return { matched: false };
+  ipcMain.handle('rule:delete', async (_event, id: string) => {
+    try {
+      const success = ruleRepository.delete(id);
+      return { success };
+    } catch (error) {
+      console.error('Error deleting rule:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('rule:toggle-active', async (_event, id: string) => {
+    try {
+      const updated = ruleRepository.toggleActive(id);
+      if (!updated) {
+        throw new Error('Rule not found');
+      }
+      return updated;
+    } catch (error) {
+      console.error('Error toggling rule:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('rule:reorder', async (_event, ruleIds: string[]) => {
+    try {
+      ruleRepository.reorder(ruleIds);
+      return { success: true };
+    } catch (error) {
+      console.error('Error reordering rules:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('rule:test', async (_event, params: {
+    ruleType: Rule['ruleType'];
+    pattern: string;
+    testData: {
+      windowTitle?: string;
+      url?: string;
+      appName?: string;
+      keywords?: string[];
+    };
+  }) => {
+    try {
+      const ruleMatchingService = getRuleMatchingService();
+      return ruleMatchingService.testRule(params.ruleType, params.pattern, params.testData);
+    } catch (error) {
+      console.error('Error testing rule:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('rule:match', async (_event, testData: {
+    windowTitle?: string;
+    url?: string;
+    appName?: string;
+    keywords?: string[];
+  }) => {
+    try {
+      const ruleMatchingService = getRuleMatchingService();
+      return ruleMatchingService.match(testData);
+    } catch (error) {
+      console.error('Error matching rules:', error);
+      throw error;
+    }
   });
 
   // ========================================

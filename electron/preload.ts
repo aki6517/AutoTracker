@@ -92,6 +92,15 @@ const electronAPI: ElectronAPI = {
     onBudgetWarning: createEventListener('ai-usage:budget-warning'),
   },
 
+  // ウィンドウモニター
+  windowMonitor: {
+    getActiveWindow: () => ipcRenderer.invoke('window-monitor:get-active'),
+    start: (params) => ipcRenderer.invoke('window-monitor:start', params),
+    stop: () => ipcRenderer.invoke('window-monitor:stop'),
+    getStatus: () => ipcRenderer.invoke('window-monitor:get-status'),
+    getHistory: (limit) => ipcRenderer.invoke('window-monitor:get-history', limit),
+  },
+
   // システム
   system: {
     getAppInfo: () => ipcRenderer.invoke('system:get-app-info'),

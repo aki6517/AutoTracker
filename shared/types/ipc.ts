@@ -18,6 +18,8 @@ import type {
   AIUsageMonthly,
   BudgetStatus,
   ScreenshotMeta,
+  WindowMetadata,
+  WindowMonitorStatus,
 } from './api.js';
 
 // ========================================
@@ -118,6 +120,15 @@ export interface ElectronAPI {
     getMonthly: () => Promise<AIUsageMonthly>;
     getBudgetStatus: () => Promise<BudgetStatus>;
     onBudgetWarning: (callback: (status: BudgetStatus) => void) => () => void;
+  };
+
+  // ウィンドウモニター
+  windowMonitor: {
+    getActiveWindow: () => Promise<WindowMetadata>;
+    start: (params?: { intervalMs?: number }) => Promise<{ success: boolean }>;
+    stop: () => Promise<{ success: boolean }>;
+    getStatus: () => Promise<WindowMonitorStatus>;
+    getHistory: (limit?: number) => Promise<WindowMetadata[]>;
   };
 
   // システム

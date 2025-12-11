@@ -241,3 +241,20 @@ export interface ScreenshotMeta {
   appName: string | null;
 }
 
+// ========================================
+// WindowMonitor関連
+// ========================================
+
+export interface WindowMetadata {
+  windowTitle: string | null;
+  appName: string | null;
+  processId: number | null;
+  url: string | null;
+  timestamp: string;
+}
+
+export interface WindowMonitorStatus {
+  isActive: boolean;
+  latestMetadata: WindowMetadata | null;
+}
+

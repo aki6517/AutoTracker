@@ -2,6 +2,7 @@ import { ipcMain, shell, app } from 'electron';
 import { projectRepository } from '../repositories/project.repository.js';
 import { screenshotRepository } from '../repositories/screenshot.repository.js';
 import { getScreenCaptureService } from '../services/screen-capture.service.js';
+import { getWindowMonitorService } from '../services/window-monitor.service.js';
 
 // プロジェクト数の上限（Phase 1）
 const MAX_PROJECTS = 5;
@@ -354,6 +355,64 @@ export function initializeIpcHandlers() {
       percentUsed: 0,
       isOverBudget: false,
     };
+  });
+
+  // ========================================
+  // ウィンドウモニター
+  // ========================================
+  ipcMain.handle('window-monitor:get-active', async () => {
+    try {
+      const windowMonitorService = getWindowMonitorService();
+      return await windowMonitorService.getActiveWindow();
+    } catch (error) {
+      console.error('Error getting active window:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('window-monitor:start', async (_event, params?: { intervalMs?: number }) => {
+    try {
+      const windowMonitorService = getWindowMonitorService();
+      windowMonitorService.startMonitoring(undefined, params?.intervalMs);
+      return { success: true };
+    } catch (error) {
+      console.error('Error starting window monitor:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('window-monitor:stop', async () => {
+    try {
+      const windowMonitorService = getWindowMonitorService();
+      windowMonitorService.stopMonitoring();
+      return { success: true };
+    } catch (error) {
+      console.error('Error stopping window monitor:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('window-monitor:get-status', async () => {
+    try {
+      const windowMonitorService = getWindowMonitorService();
+      return {
+        isActive: windowMonitorService.isActive(),
+        latestMetadata: windowMonitorService.getLatestMetadata(),
+      };
+    } catch (error) {
+      console.error('Error getting window monitor status:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('window-monitor:get-history', async (_event, limit?: number) => {
+    try {
+      const windowMonitorService = getWindowMonitorService();
+      return windowMonitorService.getMetadataHistory(limit);
+    } catch (error) {
+      console.error('Error getting window metadata history:', error);
+      throw error;
+    }
   });
 
   // ========================================

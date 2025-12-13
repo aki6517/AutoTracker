@@ -4,6 +4,7 @@ import { screenshotRepository } from '../repositories/screenshot.repository.js';
 import { ruleRepository, type Rule } from '../repositories/rule.repository.js';
 import { aiUsageRepository } from '../repositories/ai-usage.repository.js';
 import { entryRepository } from '../repositories/entry.repository.js';
+import { reportRepository } from '../repositories/report.repository.js';
 import { getScreenCaptureService } from '../services/screen-capture.service.js';
 import { getWindowMonitorService } from '../services/window-monitor.service.js';
 import { getRuleMatchingService } from '../services/rule-matching.service.js';
@@ -443,17 +444,39 @@ export function initializeIpcHandlers() {
   });
 
   // ========================================
-  // レポート（プレースホルダー）
+  // レポート
   // ========================================
-  ipcMain.handle('report:generate-daily', async (_event, _params) => {
-    // TODO: Issue #16で実装
-    return {
-      date: new Date().toISOString().split('T')[0],
-      totalHours: 0,
-      totalRevenue: 0,
-      projectBreakdown: [],
-      entries: [],
-    };
+  ipcMain.handle('report:generate-daily', async (_event, params: { date: string }) => {
+    try {
+      const report = reportRepository.generateDailyReport(params.date);
+      // API形式に変換
+      return {
+        date: report.date,
+        totalHours: report.summary.totalHours,
+        totalRevenue: report.summary.totalRevenue,
+        projectBreakdown: report.projectBreakdown.map((p) => ({
+          projectId: p.projectId,
+          projectName: p.projectName,
+          projectColor: p.projectColor,
+          hours: p.hours,
+          percentage: p.percentage,
+          revenue: p.revenue,
+        })),
+        entries: [], // エントリー一覧は別途取得
+      };
+    } catch (error) {
+      console.error('Error generating daily report:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('report:get-aggregated', async (_event, params: { startDate: string; endDate: string }) => {
+    try {
+      return reportRepository.getAggregatedReport(params.startDate, params.endDate);
+    } catch (error) {
+      console.error('Error getting aggregated report:', error);
+      throw error;
+    }
   });
 
   // ========================================

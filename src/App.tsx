@@ -3,9 +3,9 @@ import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Timeline from './pages/Timeline';
+import Reports from './pages/Reports';
 
 // プレースホルダーページ（後で実装）
-const Reports = () => <div className="p-8 text-white">レポート（実装予定）</div>;
 const Settings = () => <div className="p-8 text-white">設定（実装予定）</div>;
 
 function App() {

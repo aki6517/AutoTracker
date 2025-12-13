@@ -13,6 +13,7 @@ import { getChangeDetector } from './change-detector.service.js';
 import { aiJudgmentService } from './ai-judgment.service.js';
 import { getRuleMatchingService } from './rule-matching.service.js';
 import { getNotificationService } from './notification.service.js';
+import { getPasswordDetectionService } from './password-detection.service.js';
 import type { ScreenContext, TrackingStatus, ConfirmationRequest } from '../../shared/types/api.js';
 
 // トラッキング設定
@@ -291,13 +292,30 @@ export class TrackingEngine {
    */
   private async captureAndAnalyze(): Promise<void> {
     try {
-      console.log('[TrackingEngine] Capturing screenshot...');
-
       const screenCaptureService = getScreenCaptureService();
       const windowMonitorService = getWindowMonitorService();
+      const passwordDetectionService = getPasswordDetectionService();
 
       // 現在のウィンドウメタデータを取得
       const windowMetadata = await windowMonitorService.getActiveWindow();
+
+      // パスワード画面かどうかをチェック
+      const passwordCheck = passwordDetectionService.detect(windowMetadata);
+      if (passwordCheck.isPasswordScreen) {
+        console.log(
+          `[TrackingEngine] Password screen detected (${passwordCheck.matchType}: ${passwordCheck.matchedPattern}). Skipping screenshot.`
+        );
+        // スクリーンショットはスキップするが、メタデータは更新
+        this.state.lastScreenContext = {
+          windowTitle: windowMetadata.windowTitle,
+          appName: windowMetadata.appName,
+          url: windowMetadata.url,
+          timestamp: new Date().toISOString(),
+        };
+        return;
+      }
+
+      console.log('[TrackingEngine] Capturing screenshot...');
 
       // スクリーンコンテキストを作成
       const screenContext: ScreenContext = {
@@ -311,7 +329,7 @@ export class TrackingEngine {
       const entryId = this.state.currentEntry?.id
         ? String(this.state.currentEntry.id)
         : 'temp';
-      const screenshot = await screenCaptureService.capture(entryId, {
+      await screenCaptureService.capture(entryId, {
         windowTitle: windowMetadata.windowTitle ?? undefined,
         url: windowMetadata.url ?? undefined,
         appName: windowMetadata.appName ?? undefined,

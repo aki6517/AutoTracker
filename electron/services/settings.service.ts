@@ -53,6 +53,20 @@ export class SettingsService {
   }
 
   /**
+   * 全設定を取得（エイリアス）
+   */
+  getAll(): Settings {
+    return this.get();
+  }
+
+  /**
+   * 特定のキーの値を設定
+   */
+  set<K extends string>(key: K, value: unknown): void {
+    this.store.set(`settings.${key}`, value);
+  }
+
+  /**
    * 設定を更新
    */
   update(updates: Partial<Settings>): Settings {

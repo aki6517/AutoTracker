@@ -214,3 +214,4 @@ export class ReportRepository {
 // シングルトンインスタンス
 export const reportRepository = new ReportRepository();
 
+

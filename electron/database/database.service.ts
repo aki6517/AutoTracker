@@ -1,10 +1,6 @@
 import Database from 'better-sqlite3';
 import { app } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import path from 'node:path';
 
 export class DatabaseService {
   private db: Database.Database | null = null;

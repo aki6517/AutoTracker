@@ -4,6 +4,15 @@ import electron from 'vite-plugin-electron/simple';
 import renderer from 'vite-plugin-electron-renderer';
 import path from 'path';
 
+// ネイティブモジュールを外部依存として指定
+const nativeModules = [
+  'electron',
+  'better-sqlite3',
+  'sharp',
+  'screenshot-desktop',
+  'active-win',
+];
+
 export default defineConfig({
   plugins: [
     react(),
@@ -14,8 +23,18 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron', 'better-sqlite3'],
+              external: nativeModules,
+              output: {
+                // 各チャンクの先頭に__dirnameのpolyfillを挿入
+                banner: `
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+`,
+              },
             },
+            minify: false,
           },
         },
       },
@@ -52,4 +71,3 @@ export default defineConfig({
     port: 5173,
   },
 });
-

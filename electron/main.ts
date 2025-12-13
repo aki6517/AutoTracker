@@ -1,12 +1,16 @@
 import { app, BrowserWindow } from 'electron';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import path from 'node:path';
 import { initializeIpcHandlers } from './ipc/index.js';
 import { initializeDatabase } from './database/index.js';
 import { setTrackingEngineMainWindow } from './services/tracking-engine.service.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Electronのメインプロセスでのパス解決
+const getMainDir = () => {
+  // アプリのパスからdist-electronディレクトリを取得
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'app', 'dist-electron')
+    : path.join(app.getAppPath(), 'dist-electron');
+};
 
 // 開発環境かどうか
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
@@ -14,6 +18,8 @@ const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
+  const mainDir = getMainDir();
+  
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -21,7 +27,7 @@ function createWindow() {
     minHeight: 600,
     backgroundColor: '#0D0D0D',
     webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
+      preload: path.join(mainDir, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: false,
@@ -41,10 +47,12 @@ function createWindow() {
 
   // 開発環境ではViteの開発サーバー、本番環境ではビルド済みファイルを読み込む
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173');
+    // vite-plugin-electronが設定するVITE_DEV_SERVER_URLを使用
+    const devServerUrl = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5173';
+    mainWindow.loadURL(devServerUrl);
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    mainWindow.loadFile(path.join(app.getAppPath(), 'dist', 'index.html'));
   }
 
   mainWindow.on('closed', () => {

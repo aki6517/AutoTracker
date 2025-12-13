@@ -123,6 +123,15 @@ const electronAPI: ElectronAPI = {
     getHistory: (limit) => ipcRenderer.invoke('window-monitor:get-history', limit),
   },
 
+  // バックアップ
+  backup: {
+    list: () => ipcRenderer.invoke('backup:list'),
+    create: () => ipcRenderer.invoke('backup:create'),
+    restore: (backupPath) => ipcRenderer.invoke('backup:restore', backupPath),
+    verify: (backupPath) => ipcRenderer.invoke('backup:verify', backupPath),
+    getStatus: () => ipcRenderer.invoke('backup:get-status'),
+  },
+
   // システム
   system: {
     getAppInfo: () => ipcRenderer.invoke('system:get-app-info'),

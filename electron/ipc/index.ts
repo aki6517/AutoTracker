@@ -12,6 +12,7 @@ import { aiJudgmentService } from '../services/ai-judgment.service.js';
 import { getChangeDetector } from '../services/change-detector.service.js';
 import { getTrackingEngine } from '../services/tracking-engine.service.js';
 import { getSettingsService } from '../services/settings.service.js';
+import { getBackupService } from '../services/backup.service.js';
 import type { ScreenContext, ConfirmationResponse, Settings } from '../../shared/types/api.js';
 
 // プロジェクト数の上限（Phase 1）
@@ -811,6 +812,67 @@ export function initializeIpcHandlers() {
       return { success: true };
     } catch (error) {
       console.error('Error setting change detector options:', error);
+      throw error;
+    }
+  });
+
+  // ========================================
+  // バックアップ
+  // ========================================
+  ipcMain.handle('backup:list', async () => {
+    try {
+      const backupService = getBackupService();
+      return await backupService.listBackups();
+    } catch (error) {
+      console.error('Error listing backups:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('backup:create', async () => {
+    try {
+      const backupService = getBackupService();
+      return await backupService.createBackup();
+    } catch (error) {
+      console.error('Error creating backup:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('backup:restore', async (_event, backupPath: string) => {
+    try {
+      const backupService = getBackupService();
+      const success = await backupService.restore(backupPath);
+      return { success };
+    } catch (error) {
+      console.error('Error restoring backup:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('backup:verify', async (_event, backupPath: string) => {
+    try {
+      const backupService = getBackupService();
+      const isValid = await backupService.verifyBackup(backupPath);
+      return { isValid };
+    } catch (error) {
+      console.error('Error verifying backup:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('backup:get-status', async () => {
+    try {
+      const backupService = getBackupService();
+      const backups = await backupService.listBackups();
+      return {
+        isAutoBackupRunning: backupService.isAutoBackupRunning(),
+        backupCount: backups.length,
+        latestBackup: backups.length > 0 ? backups[0] : null,
+        config: backupService.getConfig(),
+      };
+    } catch (error) {
+      console.error('Error getting backup status:', error);
       throw error;
     }
   });

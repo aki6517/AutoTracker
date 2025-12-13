@@ -3,6 +3,7 @@ import path from 'node:path';
 import { initializeIpcHandlers } from './ipc/index.js';
 import { initializeDatabase } from './database/index.js';
 import { setTrackingEngineMainWindow } from './services/tracking-engine.service.js';
+import { getBackupService } from './services/backup.service.js';
 
 // Electronのメインプロセスでのパス解決
 const getMainDir = () => {
@@ -63,8 +64,15 @@ function createWindow() {
 // アプリケーションの準備ができたらウィンドウを作成
 app.whenReady().then(async () => {
   try {
+    // 起動時リカバリを実行
+    const backupService = getBackupService();
+    await backupService.performStartupRecovery();
+
     // データベースの初期化
     await initializeDatabase();
+
+    // 自動バックアップを開始
+    backupService.startAutoBackup();
 
     // IPCハンドラーの初期化
     initializeIpcHandlers();
@@ -87,6 +95,12 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+// アプリ終了時にバックアップサービスを停止
+app.on('before-quit', () => {
+  const backupService = getBackupService();
+  backupService.stopAutoBackup();
 });
 
 // セキュリティ: 新しいウィンドウの作成を制限

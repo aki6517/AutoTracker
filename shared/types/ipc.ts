@@ -177,10 +177,41 @@ export interface ElectronAPI {
     getHistory: (limit?: number) => Promise<WindowMetadata[]>;
   };
 
+  // バックアップ
+  backup: {
+    list: () => Promise<BackupInfo[]>;
+    create: () => Promise<BackupInfo>;
+    restore: (backupPath: string) => Promise<{ success: boolean }>;
+    verify: (backupPath: string) => Promise<{ isValid: boolean }>;
+    getStatus: () => Promise<BackupStatus>;
+  };
+
   // システム
   system: {
     getAppInfo: () => Promise<{ version: string; platform: string }>;
     openExternal: (url: string) => Promise<void>;
+  };
+}
+
+// バックアップ情報
+export interface BackupInfo {
+  id: string;
+  filename: string;
+  filePath: string;
+  createdAt: string;
+  size: number;
+  isValid: boolean;
+}
+
+// バックアップステータス
+export interface BackupStatus {
+  isAutoBackupRunning: boolean;
+  backupCount: number;
+  latestBackup: BackupInfo | null;
+  config: {
+    backupInterval: number;
+    maxBackups: number;
+    backupDir: string;
   };
 }
 

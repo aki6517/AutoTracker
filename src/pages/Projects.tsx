@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Archive, MoreVertical, Pencil, Trash2, RotateCcw, Folder } from 'lucide-react';
+import { Plus, Archive, Folder } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -13,6 +12,8 @@ import {
 } from '@/components/ui/dialog';
 import type { Project } from '../../shared/types/api';
 import ProjectForm from '@/components/projects/ProjectForm';
+import { ProjectCard } from '@/components/projects/ProjectCard';
+import { RuleEditor } from '@/components/projects/RuleEditor';
 
 // プロジェクトカラーパレット
 const PROJECT_COLORS = [
@@ -33,7 +34,7 @@ function Projects() {
   const [showForm, setShowForm] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [ruleEditorProject, setRuleEditorProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // プロジェクト一覧を取得
@@ -185,105 +186,28 @@ function Projects() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((project) => (
-            <Card
+            <ProjectCard
               key={project.id}
-              className={project.isArchived ? 'opacity-60' : ''}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: project.color }}
-                    />
-                    <div>
-                      <CardTitle className="text-lg">{project.name}</CardTitle>
-                      {project.clientName && (
-                        <p className="text-sm text-text-secondary mt-0.5">
-                          {project.clientName}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() =>
-                        setActiveMenu(activeMenu === project.id ? null : project.id)
-                      }
-                    >
-                      <MoreVertical size={18} />
-                    </Button>
-                    {activeMenu === project.id && (
-                      <div className="absolute right-0 top-10 z-10 bg-surface border border-gray-700 rounded-lg shadow-lg py-1 min-w-[160px]">
-                        <button
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-800 flex items-center gap-2"
-                          onClick={() => {
-                            setEditingProject(project);
-                            setActiveMenu(null);
-                          }}
-                        >
-                          <Pencil size={16} />
-                          編集
-                        </button>
-                        <button
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-800 flex items-center gap-2"
-                          onClick={() => {
-                            handleArchive(project);
-                            setActiveMenu(null);
-                          }}
-                        >
-                          {project.isArchived ? (
-                            <>
-                              <RotateCcw size={16} />
-                              復元
-                            </>
-                          ) : (
-                            <>
-                              <Archive size={16} />
-                              アーカイブ
-                            </>
-                          )}
-                        </button>
-                        <button
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-800 flex items-center gap-2 text-red-400"
-                          onClick={() => {
-                            setDeleteTarget(project);
-                            setActiveMenu(null);
-                          }}
-                        >
-                          <Trash2 size={16} />
-                          削除
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {project.isArchived && <Badge variant="secondary">アーカイブ</Badge>}
-                  {project.hourlyRate && (
-                    <Badge variant="outline">¥{project.hourlyRate.toLocaleString()}/h</Badge>
-                  )}
-                  {project.budgetHours && (
-                    <Badge variant="outline">{project.budgetHours}h予算</Badge>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              project={project}
+              onEdit={setEditingProject}
+              onDelete={setDeleteTarget}
+              onArchive={handleArchive}
+              onManageRules={setRuleEditorProject}
+            />
           ))}
         </div>
       )}
 
       {/* 作成/編集フォームダイアログ */}
-      <Dialog open={showForm || !!editingProject} onOpenChange={(open) => {
-        if (!open) {
-          setShowForm(false);
-          setEditingProject(null);
-        }
-      }}>
+      <Dialog
+        open={showForm || !!editingProject}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowForm(false);
+            setEditingProject(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -328,10 +252,15 @@ function Projects() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ルールエディタ */}
+      <RuleEditor
+        project={ruleEditorProject}
+        isOpen={!!ruleEditorProject}
+        onClose={() => setRuleEditorProject(null)}
+      />
     </div>
   );
 }
 
 export default Projects;
-
-

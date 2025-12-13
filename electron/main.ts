@@ -4,6 +4,8 @@ import { initializeIpcHandlers } from './ipc/index.js';
 import { initializeDatabase } from './database/index.js';
 import { setTrackingEngineMainWindow } from './services/tracking-engine.service.js';
 import { getBackupService } from './services/backup.service.js';
+import { getNetworkMonitor } from './services/network-monitor.service.js';
+import { getLogger } from './services/logger.service.js';
 
 // Electronのメインプロセスでのパス解決
 const getMainDir = () => {
@@ -74,6 +76,14 @@ app.whenReady().then(async () => {
     // 自動バックアップを開始
     backupService.startAutoBackup();
 
+    // ネットワークモニターを開始
+    const networkMonitor = getNetworkMonitor();
+    networkMonitor.startMonitoring();
+
+    // ロガーを初期化
+    const logger = getLogger();
+    logger.info('App', 'AutoTracker started', { version: app.getVersion() });
+
     // IPCハンドラーの初期化
     initializeIpcHandlers();
 
@@ -97,10 +107,17 @@ app.on('window-all-closed', () => {
   }
 });
 
-// アプリ終了時にバックアップサービスを停止
+// アプリ終了時にサービスを停止
 app.on('before-quit', () => {
   const backupService = getBackupService();
   backupService.stopAutoBackup();
+
+  const networkMonitor = getNetworkMonitor();
+  networkMonitor.stopMonitoring();
+
+  const logger = getLogger();
+  logger.info('App', 'AutoTracker shutting down');
+  logger.close();
 });
 
 // セキュリティ: 新しいウィンドウの作成を制限

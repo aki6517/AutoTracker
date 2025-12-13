@@ -14,6 +14,8 @@ import { aiJudgmentService } from './ai-judgment.service.js';
 import { getRuleMatchingService } from './rule-matching.service.js';
 import { getNotificationService } from './notification.service.js';
 import { getPasswordDetectionService } from './password-detection.service.js';
+import { getNetworkMonitor } from './network-monitor.service.js';
+import { logger } from './logger.service.js';
 import type { ScreenContext, TrackingStatus, ConfirmationRequest } from '../../shared/types/api.js';
 
 // トラッキング設定
@@ -433,15 +435,22 @@ export class TrackingEngine {
       confidence = ruleResult.confidence;
       reasoning = 'ルールマッチング';
     } else if (aiJudgmentService.hasApiKey()) {
-      // AI判定を使用
-      const projects = projectRepository.findAll(false);
-      const aiResult = await aiJudgmentService.judgeProject(screenContext, projects);
+      // オフラインモードチェック
+      const networkMonitor = getNetworkMonitor();
+      if (!networkMonitor.getIsOnline()) {
+        logger.info('TrackingEngine', 'Offline mode: Skipping AI judgment, using rule matching only');
+        // オフライン時はルールマッチング結果のみ使用（マッチしなかった場合はそのまま）
+      } else {
+        // AI判定を使用
+        const projects = projectRepository.findAll(false);
+        const aiResult = await aiJudgmentService.judgeProject(screenContext, projects);
 
-      if (aiResult.projectId) {
-        projectId = parseInt(aiResult.projectId, 10);
-        projectName = aiResult.projectName;
-        confidence = aiResult.confidence;
-        reasoning = aiResult.reasoning;
+        if (aiResult.projectId) {
+          projectId = parseInt(aiResult.projectId, 10);
+          projectName = aiResult.projectName;
+          confidence = aiResult.confidence;
+          reasoning = aiResult.reasoning;
+        }
       }
     }
 

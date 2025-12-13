@@ -11,7 +11,8 @@ import { getRuleMatchingService } from '../services/rule-matching.service.js';
 import { aiJudgmentService } from '../services/ai-judgment.service.js';
 import { getChangeDetector } from '../services/change-detector.service.js';
 import { getTrackingEngine } from '../services/tracking-engine.service.js';
-import type { ScreenContext, ConfirmationResponse } from '../../shared/types/api.js';
+import { getSettingsService } from '../services/settings.service.js';
+import type { ScreenContext, ConfirmationResponse, Settings } from '../../shared/types/api.js';
 
 // プロジェクト数の上限（Phase 1）
 const MAX_PROJECTS = 5;
@@ -480,16 +481,36 @@ export function initializeIpcHandlers() {
   });
 
   // ========================================
-  // 設定（プレースホルダー）
+  // 設定
   // ========================================
   ipcMain.handle('settings:get', async () => {
-    // TODO: Issue #18で実装
-    return getDefaultSettings();
+    try {
+      const settingsService = getSettingsService();
+      return settingsService.get();
+    } catch (error) {
+      console.error('Error getting settings:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('settings:update', async (_event, _settings) => {
-    // TODO: Issue #18で実装
-    return getDefaultSettings();
+  ipcMain.handle('settings:update', async (_event, updates: Partial<Settings>) => {
+    try {
+      const settingsService = getSettingsService();
+      return settingsService.update(updates);
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('settings:reset', async () => {
+    try {
+      const settingsService = getSettingsService();
+      return settingsService.reset();
+    } catch (error) {
+      console.error('Error resetting settings:', error);
+      throw error;
+    }
   });
 
   // ========================================

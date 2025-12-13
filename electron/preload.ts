@@ -78,6 +78,7 @@ const electronAPI: ElectronAPI = {
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     update: (settings) => ipcRenderer.invoke('settings:update', settings),
+    reset: () => ipcRenderer.invoke('settings:reset'),
   },
 
   // スクリーンショット

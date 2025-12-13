@@ -121,6 +121,7 @@ export interface ElectronAPI {
   settings: {
     get: () => Promise<Settings>;
     update: (settings: Partial<Settings>) => Promise<Settings>;
+    reset: () => Promise<Settings>;
   };
 
   // スクリーンショット

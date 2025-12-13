@@ -4,10 +4,8 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Timeline from './pages/Timeline';
 import Reports from './pages/Reports';
+import Settings from './pages/Settings';
 import { ConfirmationManager } from './components/tracking/ConfirmationManager';
-
-// プレースホルダーページ（後で実装）
-const Settings = () => <div className="p-8 text-white">設定（実装予定）</div>;
 
 function App() {
   return (

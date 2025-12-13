@@ -3,12 +3,14 @@ import { projectRepository } from '../repositories/project.repository.js';
 import { screenshotRepository } from '../repositories/screenshot.repository.js';
 import { ruleRepository, type Rule } from '../repositories/rule.repository.js';
 import { aiUsageRepository } from '../repositories/ai-usage.repository.js';
+import { entryRepository } from '../repositories/entry.repository.js';
 import { getScreenCaptureService } from '../services/screen-capture.service.js';
 import { getWindowMonitorService } from '../services/window-monitor.service.js';
 import { getRuleMatchingService } from '../services/rule-matching.service.js';
 import { aiJudgmentService } from '../services/ai-judgment.service.js';
 import { getChangeDetector } from '../services/change-detector.service.js';
-import type { ScreenContext } from '../../shared/types/api.js';
+import { getTrackingEngine } from '../services/tracking-engine.service.js';
+import type { ScreenContext, ConfirmationResponse } from '../../shared/types/api.js';
 
 // プロジェクト数の上限（Phase 1）
 const MAX_PROJECTS = 5;
@@ -23,36 +25,71 @@ export function initializeIpcHandlers() {
   });
 
   // ========================================
-  // トラッキング（プレースホルダー）
+  // トラッキング
   // ========================================
   ipcMain.handle('tracking:start', async () => {
-    // TODO: Issue #11で実装
-    return { success: true, status: getDefaultTrackingStatus() };
+    try {
+      const trackingEngine = getTrackingEngine();
+      return await trackingEngine.start();
+    } catch (error) {
+      console.error('Error starting tracking:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('tracking:stop', async () => {
-    // TODO: Issue #11で実装
-    return { success: true, finalEntry: null };
+    try {
+      const trackingEngine = getTrackingEngine();
+      return await trackingEngine.stop();
+    } catch (error) {
+      console.error('Error stopping tracking:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('tracking:pause', async () => {
-    // TODO: Issue #11で実装
-    return { success: true, status: getDefaultTrackingStatus() };
+    try {
+      const trackingEngine = getTrackingEngine();
+      return trackingEngine.pause();
+    } catch (error) {
+      console.error('Error pausing tracking:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('tracking:resume', async () => {
-    // TODO: Issue #11で実装
-    return { success: true, status: getDefaultTrackingStatus() };
+    try {
+      const trackingEngine = getTrackingEngine();
+      return trackingEngine.resume();
+    } catch (error) {
+      console.error('Error resuming tracking:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('tracking:get-status', async () => {
-    // TODO: Issue #11で実装
-    return getDefaultTrackingStatus();
+    try {
+      const trackingEngine = getTrackingEngine();
+      return trackingEngine.getStatus();
+    } catch (error) {
+      console.error('Error getting tracking status:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('tracking:confirmation-response', async (_event, _response) => {
-    // TODO: Issue #17で実装
-    return { success: true };
+  ipcMain.handle('tracking:confirmation-response', async (_event, response: ConfirmationResponse) => {
+    try {
+      const trackingEngine = getTrackingEngine();
+      return await trackingEngine.handleConfirmationResponse({
+        entryId: response.entryId,
+        action: response.action,
+        newProjectId: response.newProjectId,
+        splitTime: response.splitTime,
+      });
+    } catch (error) {
+      console.error('Error handling confirmation response:', error);
+      throw error;
+    }
   });
 
   // ========================================
@@ -155,46 +192,111 @@ export function initializeIpcHandlers() {
   });
 
   // ========================================
-  // エントリー（プレースホルダー）
+  // エントリー
   // ========================================
-  ipcMain.handle('entry:get-by-date-range', async (_event, _params) => {
-    // TODO: Issue #12で実装
-    return [];
+  ipcMain.handle('entry:get-by-date-range', async (_event, params: {
+    startDate: string;
+    endDate: string;
+    projectId?: number;
+    includeNonWork?: boolean;
+  }) => {
+    try {
+      return entryRepository.findByDateRange(params.startDate, params.endDate, {
+        projectId: params.projectId,
+        includeNonWork: params.includeNonWork,
+      });
+    } catch (error) {
+      console.error('Error getting entries by date range:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('entry:get-today', async () => {
-    // TODO: Issue #12で実装
-    return [];
+    try {
+      return entryRepository.findToday();
+    } catch (error) {
+      console.error('Error getting today entries:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('entry:get-current', async () => {
-    // TODO: Issue #12で実装
-    return null;
+    try {
+      return entryRepository.findCurrent();
+    } catch (error) {
+      console.error('Error getting current entry:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('entry:create', async (_event, _data) => {
-    // TODO: Issue #12で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('entry:create', async (_event, data: {
+    projectId?: number;
+    startTime: string;
+    endTime?: string;
+    subtask?: string;
+    isWork?: boolean;
+  }) => {
+    try {
+      return entryRepository.create(data);
+    } catch (error) {
+      console.error('Error creating entry:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('entry:update', async (_event, _id, _data) => {
-    // TODO: Issue #12で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('entry:update', async (_event, id: number, data: {
+    projectId?: number | null;
+    startTime?: string;
+    endTime?: string | null;
+    subtask?: string | null;
+    isWork?: boolean;
+  }) => {
+    try {
+      const updated = entryRepository.update(id, data);
+      if (!updated) {
+        throw new Error('Entry not found');
+      }
+      return updated;
+    } catch (error) {
+      console.error('Error updating entry:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('entry:delete', async (_event, _id) => {
-    // TODO: Issue #12で実装
-    return { success: false };
+  ipcMain.handle('entry:delete', async (_event, id: number) => {
+    try {
+      const success = entryRepository.delete(id);
+      return { success };
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('entry:split', async (_event, _params) => {
-    // TODO: Issue #12で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('entry:split', async (_event, params: { entryId: number; splitTime: string }) => {
+    try {
+      const result = entryRepository.split(params.entryId, params.splitTime);
+      if (!result) {
+        throw new Error('Entry not found');
+      }
+      return result;
+    } catch (error) {
+      console.error('Error splitting entry:', error);
+      throw error;
+    }
   });
 
-  ipcMain.handle('entry:merge', async (_event, _params) => {
-    // TODO: Issue #12で実装
-    throw new Error('Not implemented');
+  ipcMain.handle('entry:merge', async (_event, params: { entryIds: number[]; projectId?: number }) => {
+    try {
+      const result = entryRepository.merge(params.entryIds, params.projectId);
+      if (!result) {
+        throw new Error('Failed to merge entries');
+      }
+      return result;
+    } catch (error) {
+      console.error('Error merging entries:', error);
+      throw error;
+    }
   });
 
   // ========================================

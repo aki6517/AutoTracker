@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { initializeIpcHandlers } from './ipc/index.js';
 import { initializeDatabase } from './database/index.js';
+import { setTrackingEngineMainWindow } from './services/tracking-engine.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +33,10 @@ function createWindow() {
   // ウィンドウが準備できたら表示
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
+    // トラッキングエンジンにメインウィンドウを設定
+    if (mainWindow) {
+      setTrackingEngineMainWindow(mainWindow);
+    }
   });
 
   // 開発環境ではViteの開発サーバー、本番環境ではビルド済みファイルを読み込む

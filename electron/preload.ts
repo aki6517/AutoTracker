@@ -96,6 +96,15 @@ const electronAPI: ElectronAPI = {
     onBudgetWarning: createEventListener('ai-usage:budget-warning'),
   },
 
+  // AI判定
+  ai: {
+    setApiKey: (apiKey) => ipcRenderer.invoke('ai:set-api-key', apiKey),
+    hasApiKey: () => ipcRenderer.invoke('ai:has-api-key'),
+    testApiKey: () => ipcRenderer.invoke('ai:test-api-key'),
+    detectChange: (params) => ipcRenderer.invoke('ai:detect-change', params),
+    judgeProject: (params) => ipcRenderer.invoke('ai:judge-project', params),
+  },
+
   // ウィンドウモニター
   windowMonitor: {
     getActiveWindow: () => ipcRenderer.invoke('window-monitor:get-active'),

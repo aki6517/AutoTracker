@@ -258,3 +258,34 @@ export interface WindowMonitorStatus {
   latestMetadata: WindowMetadata | null;
 }
 
+// ========================================
+// AI判定関連
+// ========================================
+
+export interface ScreenContext {
+  windowTitle: string | null;
+  appName: string | null;
+  url: string | null;
+  ocrText?: string | null;
+  timestamp: string;
+}
+
+export interface ChangeDetectionResult {
+  hasChange: boolean;
+  confidence: number;
+  reasoning: string;
+  tokensUsed: number;
+  cost: number;
+}
+
+export interface ProjectJudgmentResult {
+  projectId: string | null;
+  projectName: string | null;
+  confidence: number;
+  reasoning: string;
+  alternatives: { projectId: string; projectName: string; score: number }[];
+  isWork: boolean;
+  tokensUsed: number;
+  cost: number;
+}
+

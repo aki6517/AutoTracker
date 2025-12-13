@@ -20,6 +20,9 @@ import type {
   ScreenshotMeta,
   WindowMetadata,
   WindowMonitorStatus,
+  ScreenContext,
+  ChangeDetectionResult,
+  ProjectJudgmentResult,
 } from './api.js';
 
 // ========================================
@@ -135,6 +138,20 @@ export interface ElectronAPI {
     getMonthly: () => Promise<AIUsageMonthly>;
     getBudgetStatus: () => Promise<BudgetStatus>;
     onBudgetWarning: (callback: (status: BudgetStatus) => void) => () => void;
+  };
+
+  // AI判定
+  ai: {
+    setApiKey: (apiKey: string) => Promise<{ success: boolean }>;
+    hasApiKey: () => Promise<boolean>;
+    testApiKey: () => Promise<{ valid: boolean; error?: string }>;
+    detectChange: (params: {
+      current: ScreenContext;
+      previous?: ScreenContext;
+    }) => Promise<ChangeDetectionResult>;
+    judgeProject: (params: {
+      context: ScreenContext;
+    }) => Promise<ProjectJudgmentResult>;
   };
 
   // ウィンドウモニター

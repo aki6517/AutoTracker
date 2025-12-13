@@ -2,9 +2,11 @@ import { ipcMain, shell, app } from 'electron';
 import { projectRepository } from '../repositories/project.repository.js';
 import { screenshotRepository } from '../repositories/screenshot.repository.js';
 import { ruleRepository, type Rule } from '../repositories/rule.repository.js';
+import { aiUsageRepository } from '../repositories/ai-usage.repository.js';
 import { getScreenCaptureService } from '../services/screen-capture.service.js';
 import { getWindowMonitorService } from '../services/window-monitor.service.js';
 import { getRuleMatchingService } from '../services/rule-matching.service.js';
+import { aiJudgmentService } from '../services/ai-judgment.service.js';
 
 // プロジェクト数の上限（Phase 1）
 const MAX_PROJECTS = 5;
@@ -451,27 +453,104 @@ export function initializeIpcHandlers() {
   });
 
   // ========================================
-  // AI使用状況（プレースホルダー）
+  // AI使用状況
   // ========================================
   ipcMain.handle('ai-usage:get-monthly', async () => {
-    // TODO: Issue #9で実装
-    return {
-      month: new Date().toISOString().slice(0, 7),
-      totalTokens: 0,
-      totalCost: 0,
-      byModel: [],
-    };
+    try {
+      const usage = aiUsageRepository.getMonthlyUsage();
+      return {
+        month: usage.month,
+        totalTokens: usage.totalTokensIn + usage.totalTokensOut,
+        totalCost: usage.totalCost,
+        byModel: usage.byModel.map((m) => ({
+          model: m.model,
+          tokens: m.tokensIn + m.tokensOut,
+          cost: m.cost,
+          requestCount: m.requestCount,
+        })),
+      };
+    } catch (error) {
+      console.error('Error getting monthly AI usage:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('ai-usage:get-budget-status', async () => {
-    // TODO: Issue #9で実装
-    return {
-      monthlyBudget: 2.0,
-      currentUsage: 0,
-      remaining: 2.0,
-      percentUsed: 0,
-      isOverBudget: false,
+    try {
+      return aiJudgmentService.getBudgetStatus();
+    } catch (error) {
+      console.error('Error getting AI budget status:', error);
+      throw error;
+    }
+  });
+
+  // ========================================
+  // AI判定
+  // ========================================
+  ipcMain.handle('ai:set-api-key', async (_event, apiKey: string) => {
+    try {
+      aiJudgmentService.setApiKey(apiKey);
+      return { success: true };
+    } catch (error) {
+      console.error('Error setting API key:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('ai:has-api-key', async () => {
+    return aiJudgmentService.hasApiKey();
+  });
+
+  ipcMain.handle('ai:test-api-key', async () => {
+    try {
+      return await aiJudgmentService.testApiKey();
+    } catch (error) {
+      console.error('Error testing API key:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('ai:detect-change', async (_event, params: {
+    current: {
+      windowTitle: string | null;
+      appName: string | null;
+      url: string | null;
+      ocrText?: string | null;
+      timestamp: string;
     };
+    previous?: {
+      windowTitle: string | null;
+      appName: string | null;
+      url: string | null;
+      ocrText?: string | null;
+      timestamp: string;
+    };
+  }) => {
+    try {
+      return await aiJudgmentService.detectChange(params.current, params.previous);
+    } catch (error) {
+      console.error('Error detecting change:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('ai:judge-project', async (_event, params: {
+    context: {
+      windowTitle: string | null;
+      appName: string | null;
+      url: string | null;
+      ocrText?: string | null;
+      timestamp: string;
+    };
+  }) => {
+    try {
+      // プロジェクト一覧を取得
+      const projects = projectRepository.findAll(false);
+      return await aiJudgmentService.judgeProject(params.context, projects);
+    } catch (error) {
+      console.error('Error judging project:', error);
+      throw error;
+    }
   });
 
   // ========================================

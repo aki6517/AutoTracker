@@ -1,148 +1,183 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, FolderKanban, TrendingUp, Zap } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { CurrentTask } from '@/components/dashboard/CurrentTask';
+import { TodayStats } from '@/components/dashboard/TodayStats';
+import { RecentTimeline } from '@/components/dashboard/RecentTimeline';
+import type { TrackingStatus, EntryWithProject } from '../../shared/types/api';
 
 function Dashboard() {
-  const [todayHours, setTodayHours] = useState(0);
-  const [projectCount, setProjectCount] = useState(0);
+  const [trackingStatus, setTrackingStatus] = useState<TrackingStatus | null>(null);
+  const [todayEntries, setTodayEntries] = useState<EntryWithProject[]>([]);
+  const [stats, setStats] = useState({
+    totalHours: 0,
+    billableHours: 0,
+    projectCount: 0,
+    aiAccuracy: 0,
+  });
 
-  useEffect(() => {
-    // IPC通信のテスト
-    if (window.api?.test?.ping) {
-      window.api.test
-        .ping()
-        .then((response: string) => {
-          console.log('IPC Test Response:', response);
-        })
-        .catch((error: unknown) => {
-          console.error('IPC Test Error:', error);
-        });
+  // データを取得
+  const fetchData = useCallback(async () => {
+    try {
+      // トラッキングステータス
+      const status = await window.api.tracking.getStatus();
+      setTrackingStatus(status);
+
+      // 今日のエントリー
+      const entries = await window.api.entries.getToday();
+      setTodayEntries(entries);
+
+      // 統計を計算
+      const totalMinutes = entries.reduce((acc, entry) => {
+        const start = new Date(entry.startTime);
+        const end = entry.endTime ? new Date(entry.endTime) : new Date();
+        return acc + (end.getTime() - start.getTime()) / 60000;
+      }, 0);
+
+      const totalHours = totalMinutes / 60;
+      const billableHours = entries
+        .filter((e) => e.isWork && e.projectId)
+        .reduce((acc, entry) => {
+          const start = new Date(entry.startTime);
+          const end = entry.endTime ? new Date(entry.endTime) : new Date();
+          return acc + (end.getTime() - start.getTime()) / 3600000;
+        }, 0);
+
+      const projectIds = new Set(entries.filter((e) => e.projectId).map((e) => e.projectId));
+      const avgConfidence = entries.length > 0
+        ? entries.reduce((acc, e) => acc + e.confidence, 0) / entries.length
+        : 0;
+
+      setStats({
+        totalHours,
+        billableHours,
+        projectCount: projectIds.size,
+        aiAccuracy: Math.round(avgConfidence),
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
     }
-
-    // デモデータ
-    setTodayHours(4.5);
-    setProjectCount(3);
   }, []);
 
-  const stats = [
-    {
-      title: '今日の作業時間',
-      value: `${todayHours.toFixed(1)}h`,
-      icon: Clock,
-      change: '+0.5h from yesterday',
-      changeType: 'positive' as const,
-    },
-    {
-      title: 'アクティブプロジェクト',
-      value: projectCount.toString(),
-      icon: FolderKanban,
-      change: '3 tasks pending',
-      changeType: 'neutral' as const,
-    },
-    {
-      title: '今週の生産性',
-      value: '87%',
-      icon: TrendingUp,
-      change: '+12% from last week',
-      changeType: 'positive' as const,
-    },
-    {
-      title: 'AI判定精度',
-      value: '94%',
-      icon: Zap,
-      change: 'High confidence',
-      changeType: 'positive' as const,
-    },
-  ];
+  // 初回ロード
+  useEffect(() => {
+    fetchData();
+
+    // 定期更新（30秒ごと）
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  // イベントリスナー
+  useEffect(() => {
+    // エントリー作成時
+    const unsubscribeCreated = window.api.tracking.onEntryCreated((entry) => {
+      console.log('Entry created:', entry);
+      setTodayEntries((prev) => [entry, ...prev]);
+      fetchData();
+    });
+
+    // エントリー更新時
+    const unsubscribeUpdated = window.api.tracking.onEntryUpdated((entry) => {
+      console.log('Entry updated:', entry);
+      setTodayEntries((prev) =>
+        prev.map((e) => (e.id === entry.id ? entry : e))
+      );
+      fetchData();
+    });
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+    };
+  }, [fetchData]);
+
+  // トラッキング制御
+  const handleStart = async () => {
+    try {
+      const result = await window.api.tracking.start();
+      if (result.success) {
+        setTrackingStatus(result.status);
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error starting tracking:', error);
+    }
+  };
+
+  const handleStop = async () => {
+    try {
+      const result = await window.api.tracking.stop();
+      if (result.success) {
+        setTrackingStatus({
+          isRunning: false,
+          isPaused: false,
+          startedAt: null,
+          currentEntryId: null,
+          currentProjectId: null,
+          currentProjectName: null,
+          elapsedSeconds: 0,
+          confidence: 0,
+        });
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error stopping tracking:', error);
+    }
+  };
+
+  const handlePause = async () => {
+    try {
+      const result = await window.api.tracking.pause();
+      if (result.success) {
+        setTrackingStatus(result.status);
+      }
+    } catch (error) {
+      console.error('Error pausing tracking:', error);
+    }
+  };
+
+  const handleResume = async () => {
+    try {
+      const result = await window.api.tracking.resume();
+      if (result.success) {
+        setTrackingStatus(result.status);
+      }
+    } catch (error) {
+      console.error('Error resuming tracking:', error);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
-      {/* ウェルカムセクション */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-2">おかえりなさい 👋</h1>
-        <p className="text-text-secondary">今日の作業状況を確認しましょう</p>
+      {/* ヘッダー */}
+      <div>
+        <h1 className="text-2xl font-bold text-white">ダッシュボード</h1>
+        <p className="text-text-secondary mt-1">今日の作業状況</p>
       </div>
 
-      {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-text-secondary">
-                  {stat.title}
-                </CardTitle>
-                <Icon className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">{stat.value}</div>
-                <p className="text-xs text-text-secondary mt-1">
-                  {stat.changeType === 'positive' && (
-                    <span className="text-green-400">{stat.change}</span>
-                  )}
-                  {stat.changeType === 'neutral' && <span>{stat.change}</span>}
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {/* 今日の統計 */}
+      <TodayStats
+        totalHours={stats.totalHours}
+        billableHours={stats.billableHours}
+        projectCount={stats.projectCount}
+        aiAccuracy={stats.aiAccuracy}
+      />
 
       {/* 現在の作業 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>現在の作業</CardTitle>
-          <CardDescription>トラッキングを開始すると、ここに現在の作業が表示されます</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8 text-text-secondary">
-            <div className="text-center">
-              <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>トラッキングが停止しています</p>
-              <p className="text-sm mt-1">右上の「トラッキング開始」ボタンを押して開始してください</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <CurrentTask
+        status={trackingStatus}
+        onStart={handleStart}
+        onStop={handleStop}
+        onPause={handlePause}
+        onResume={handleResume}
+      />
 
-      {/* 直近のタイムライン */}
-      <Card>
-        <CardHeader>
-          <CardTitle>今日のタイムライン</CardTitle>
-          <CardDescription>今日の作業記録</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* デモデータ */}
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-background">
-              <div className="w-1 h-12 rounded-full bg-primary" />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-white">AutoTracker開発</span>
-                  <Badge>進行中</Badge>
-                </div>
-                <p className="text-sm text-text-secondary mt-1">10:00 - 現在 • 2時間30分</p>
-              </div>
-              <Badge variant="success">95%</Badge>
-            </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-background">
-              <div className="w-1 h-12 rounded-full bg-secondary" />
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-white">メールチェック</span>
-                </div>
-                <p className="text-sm text-text-secondary mt-1">09:30 - 10:00 • 30分</p>
-              </div>
-              <Badge variant="secondary">手動</Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* 今日のタイムライン */}
+      <RecentTimeline
+        entries={todayEntries}
+        currentEntryId={trackingStatus?.currentEntryId}
+      />
     </div>
   );
 }
 
 export default Dashboard;
-

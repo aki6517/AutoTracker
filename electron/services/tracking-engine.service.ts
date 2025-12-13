@@ -12,6 +12,7 @@ import { getWindowMonitorService } from './window-monitor.service.js';
 import { getChangeDetector } from './change-detector.service.js';
 import { aiJudgmentService } from './ai-judgment.service.js';
 import { getRuleMatchingService } from './rule-matching.service.js';
+import { getNotificationService } from './notification.service.js';
 import type { ScreenContext, TrackingStatus, ConfirmationRequest } from '../../shared/types/api.js';
 
 // トラッキング設定
@@ -569,8 +570,17 @@ export class TrackingEngine {
    * 確認要求を通知
    */
   private notifyConfirmationNeeded(request: ConfirmationRequest): void {
-    if (!this.mainWindow) return;
-    this.mainWindow.webContents.send('tracking:confirmation-needed', request);
+    // レンダラープロセスに通知
+    if (this.mainWindow) {
+      this.mainWindow.webContents.send('tracking:confirmation-needed', request);
+    }
+
+    // システム通知も送信（頻度制限付き）
+    const notificationService = getNotificationService();
+    notificationService.showConfirmationNeeded(
+      request.suggestedProject.name,
+      request.confidence
+    );
   }
 }
 

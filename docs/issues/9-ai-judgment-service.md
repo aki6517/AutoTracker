@@ -16,8 +16,8 @@
 ### ゴール / 完了条件（Acceptance Criteria）
 
 - [x] OpenAI APIクライアントの実装（openaiパッケージ使用）
-- [x] 1次判定の実装（gpt-4o-mini、変化ありなしのYes/No判定）※gpt-5-nanoが利用可能になるまで代替
-- [x] 2次判定の実装（gpt-4o-mini、プロジェクト判定＋信頼度スコア）※gpt-5-miniが利用可能になるまで代替
+- [x] 1次判定の実装（gpt-5-nano、変化ありなしのYes/No判定）
+- [x] 2次判定の実装（gpt-5-mini、プロジェクト判定＋信頼度スコア）
 - [x] レート制限対応（60req/min、RequestQueueクラス）
 - [x] リトライロジック（指数バックオフ：1s, 2s, 4s、最大3回）
 - [x] AI使用ログ記録（ai_usage_logsテーブル：model, tokens_in, tokens_out, cost）
@@ -35,7 +35,7 @@
 3. ai_usage_logsテーブルにログが記録されていることを確認
 
 要確認事項:
-- ~~gpt-5-nano/gpt-5-miniが利用可能になるまでの代替モデル（gpt-4o-mini等）~~ → gpt-4o-miniを使用
+- ~~gpt-5-nano/gpt-5-miniが利用可能になるまでの代替モデル（gpt-4o-mini等）~~ → gpt-5-nano/gpt-5-miniを使用
 - ~~APIキーの安全な保存方法（electron-store暗号化）~~ → electron-storeの暗号化オプションを使用
 
 ---
@@ -116,10 +116,12 @@ export class OpenAIClient {
 **モデル価格設定:**
 ```typescript
 const MODEL_PRICING = {
-  'gpt-4o-mini': { input: 0.15, output: 0.60 },  // USD per 1M tokens
+  // GPT-5シリーズ（推奨）
+  'gpt-5-nano': { input: 0.05, output: 0.20 },   // USD per 1M tokens
+  'gpt-5-mini': { input: 0.10, output: 0.40 },
+  // GPT-4oシリーズ（代替）
+  'gpt-4o-mini': { input: 0.15, output: 0.60 },
   'gpt-4o': { input: 2.5, output: 10.0 },
-  'gpt-5-nano': { input: 0.05, output: 0.20 },   // 将来用（仮）
-  'gpt-5-mini': { input: 0.10, output: 0.40 },   // 将来用（仮）
 };
 ```
 
@@ -206,7 +208,7 @@ export interface ProjectJudgmentResult {
 1. **明らかな変化のローカル判定**: アプリ変更やドメイン変更はAPI呼び出しなしで検知
 2. **同一コンテキストのスキップ**: 変化がない場合はAPI呼び出しをスキップ
 3. **予算超過時のスキップ**: 月間予算を超えた場合は判定を停止
-4. **低コストモデルの使用**: gpt-4o-miniを使用（将来的にはgpt-5-nanoに移行予定）
+4. **低コストモデルの使用**: gpt-5-nano（1次判定）/ gpt-5-mini（2次判定）を使用
 
 ### 作成・更新ファイル一覧
 
@@ -262,6 +264,6 @@ console.log(`使用率: ${budgetStatus.percentUsed}%`);
 
 ### 備考
 
-- gpt-5-nano/gpt-5-miniは現時点で利用不可のため、gpt-4o-miniを代替として使用
-- モデルが利用可能になった際は `MODEL_PRICING` と `DEFAULT_MODELS` を更新するだけで切り替え可能
+- 1次判定（変化検知）にはgpt-5-nano、2次判定（プロジェクト判定）にはgpt-5-miniを使用
+- 代替モデル（gpt-4o-mini、gpt-4o）も設定で切り替え可能
 - APIキーはelectron-storeの暗号化機能で安全に保存

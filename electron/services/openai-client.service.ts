@@ -11,18 +11,18 @@ import { aiUsageRepository } from '../repositories/ai-usage.repository.js';
 // モデル価格設定（USD per 1M tokens）
 // 参考: https://openai.com/pricing
 const MODEL_PRICING: Record<string, { input: number; output: number }> = {
-  // 現行モデル（gpt-5-nano/miniが利用可能になるまでの代替）
-  'gpt-4o-mini': { input: 0.15, output: 0.60 },
-  'gpt-4o': { input: 2.5, output: 10.0 },
-  // 将来のモデル（価格は仮）
+  // GPT-5シリーズ（推奨）
   'gpt-5-nano': { input: 0.05, output: 0.20 },
   'gpt-5-mini': { input: 0.10, output: 0.40 },
+  // GPT-4oシリーズ（代替）
+  'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'gpt-4o': { input: 2.5, output: 10.0 },
 };
 
 // デフォルトモデル設定
 const DEFAULT_MODELS = {
-  changeDetection: 'gpt-4o-mini', // 1次判定（変化検知）
-  projectJudgment: 'gpt-4o-mini', // 2次判定（プロジェクト判定）
+  changeDetection: 'gpt-5-nano', // 1次判定（変化検知）- 低コスト・高速
+  projectJudgment: 'gpt-5-mini', // 2次判定（プロジェクト判定）- バランス型
 } as const;
 
 // 設定ストア
@@ -181,7 +181,7 @@ export class OpenAIClient {
    * コストを計算
    */
   calculateCost(model: string, tokensIn: number, tokensOut: number): number {
-    const pricing = MODEL_PRICING[model] ?? MODEL_PRICING['gpt-4o-mini'];
+    const pricing = MODEL_PRICING[model] ?? MODEL_PRICING['gpt-5-nano'];
     const inputCost = (tokensIn / 1_000_000) * pricing.input;
     const outputCost = (tokensOut / 1_000_000) * pricing.output;
     return inputCost + outputCost;

@@ -105,6 +105,14 @@ const electronAPI: ElectronAPI = {
     judgeProject: (params) => ipcRenderer.invoke('ai:judge-project', params),
   },
 
+  // 変更検出
+  changeDetector: {
+    detect: (params) => ipcRenderer.invoke('change-detector:detect', params),
+    reset: () => ipcRenderer.invoke('change-detector:reset'),
+    getOptions: () => ipcRenderer.invoke('change-detector:get-options'),
+    setOptions: (options) => ipcRenderer.invoke('change-detector:set-options', options),
+  },
+
   // ウィンドウモニター
   windowMonitor: {
     getActiveWindow: () => ipcRenderer.invoke('window-monitor:get-active'),

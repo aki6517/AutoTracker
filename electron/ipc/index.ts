@@ -7,6 +7,8 @@ import { getScreenCaptureService } from '../services/screen-capture.service.js';
 import { getWindowMonitorService } from '../services/window-monitor.service.js';
 import { getRuleMatchingService } from '../services/rule-matching.service.js';
 import { aiJudgmentService } from '../services/ai-judgment.service.js';
+import { getChangeDetector } from '../services/change-detector.service.js';
+import type { ScreenContext } from '../../shared/types/api.js';
 
 // プロジェクト数の上限（Phase 1）
 const MAX_PROJECTS = 5;
@@ -607,6 +609,62 @@ export function initializeIpcHandlers() {
       return windowMonitorService.getMetadataHistory(limit);
     } catch (error) {
       console.error('Error getting window metadata history:', error);
+      throw error;
+    }
+  });
+
+  // ========================================
+  // 変更検出
+  // ========================================
+  ipcMain.handle('change-detector:detect', async (_event, params: {
+    context: ScreenContext;
+    imageBase64?: string;
+  }) => {
+    try {
+      const changeDetector = getChangeDetector();
+      const imageBuffer = params.imageBase64
+        ? Buffer.from(params.imageBase64, 'base64')
+        : undefined;
+      return await changeDetector.detect(params.context, imageBuffer);
+    } catch (error) {
+      console.error('Error detecting change:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('change-detector:reset', async () => {
+    try {
+      const changeDetector = getChangeDetector();
+      changeDetector.reset();
+      return { success: true };
+    } catch (error) {
+      console.error('Error resetting change detector:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('change-detector:get-options', async () => {
+    try {
+      const changeDetector = getChangeDetector();
+      return changeDetector.getOptions();
+    } catch (error) {
+      console.error('Error getting change detector options:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('change-detector:set-options', async (_event, options: {
+    enableOcr?: boolean;
+    enableImageHash?: boolean;
+    enableRuleMatching?: boolean;
+    enableAiJudgment?: boolean;
+  }) => {
+    try {
+      const changeDetector = getChangeDetector();
+      changeDetector.setOptions(options);
+      return { success: true };
+    } catch (error) {
+      console.error('Error setting change detector options:', error);
       throw error;
     }
   });

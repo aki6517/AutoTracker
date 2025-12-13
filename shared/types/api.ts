@@ -289,3 +289,41 @@ export interface ProjectJudgmentResult {
   cost: number;
 }
 
+// ========================================
+// 変更検出エンジン関連
+// ========================================
+
+export type ChangeType = 'none' | 'title' | 'url' | 'ocr' | 'image' | 'rule' | 'ai';
+
+export interface ChangeDetectorResult {
+  hasChange: boolean;
+  changeType: ChangeType;
+  layer: number;
+  confidence: number;
+  details: {
+    previousContext?: ScreenContext;
+    currentContext: ScreenContext;
+    ocrText?: string;
+    imageHash?: string;
+    matchedRule?: {
+      projectId: string;
+      projectName: string;
+      confidence: number;
+    };
+    aiJudgment?: {
+      projectId: string | null;
+      projectName: string | null;
+      confidence: number;
+      reasoning: string;
+    };
+  };
+  processingTime: number;
+}
+
+export interface ChangeDetectorOptions {
+  enableOcr: boolean;
+  enableImageHash: boolean;
+  enableRuleMatching: boolean;
+  enableAiJudgment: boolean;
+}
+

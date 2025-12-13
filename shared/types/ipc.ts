@@ -23,6 +23,8 @@ import type {
   ScreenContext,
   ChangeDetectionResult,
   ProjectJudgmentResult,
+  ChangeDetectorResult,
+  ChangeDetectorOptions,
 } from './api.js';
 
 // ========================================
@@ -152,6 +154,17 @@ export interface ElectronAPI {
     judgeProject: (params: {
       context: ScreenContext;
     }) => Promise<ProjectJudgmentResult>;
+  };
+
+  // 変更検出エンジン
+  changeDetector: {
+    detect: (params: {
+      context: ScreenContext;
+      imageBase64?: string;
+    }) => Promise<ChangeDetectorResult>;
+    reset: () => Promise<{ success: boolean }>;
+    getOptions: () => Promise<ChangeDetectorOptions>;
+    setOptions: (options: Partial<ChangeDetectorOptions>) => Promise<{ success: boolean }>;
   };
 
   // ウィンドウモニター

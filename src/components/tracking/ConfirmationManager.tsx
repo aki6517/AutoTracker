@@ -14,7 +14,7 @@ export function ConfirmationManager() {
   // プロジェクト一覧を取得
   const fetchProjects = useCallback(async () => {
     try {
-      const result = await window.api.projects.getAll();
+      const result = await window.electronAPI.projects.getAll();
       setProjects(result);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -27,7 +27,7 @@ export function ConfirmationManager() {
 
   // 確認要求イベントを購読
   useEffect(() => {
-    const cleanup = window.api.tracking.onConfirmationNeeded((req) => {
+    const cleanup = window.electronAPI.tracking.onConfirmationNeeded((req) => {
       setRequest(req);
       setIsOpen(true);
     });
@@ -41,14 +41,14 @@ export function ConfirmationManager() {
   };
 
   const handleConfirm = async (entryId: number) => {
-    await window.api.tracking.respondConfirmation({
+    await window.electronAPI.tracking.respondConfirmation({
       entryId,
       action: 'confirm',
     });
   };
 
   const handleChange = async (entryId: number, newProjectId: number) => {
-    await window.api.tracking.respondConfirmation({
+    await window.electronAPI.tracking.respondConfirmation({
       entryId,
       action: 'change',
       newProjectId,
@@ -56,7 +56,7 @@ export function ConfirmationManager() {
   };
 
   const handleSplit = async (entryId: number, splitTime: string) => {
-    await window.api.tracking.respondConfirmation({
+    await window.electronAPI.tracking.respondConfirmation({
       entryId,
       action: 'split',
       splitTime,

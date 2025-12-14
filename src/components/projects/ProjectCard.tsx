@@ -31,7 +31,7 @@ export function ProjectCard({
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-        const entries = await window.api.entries.getByDateRange({
+        const entries = await window.electronAPI.entries.getByDateRange({
           startDate: startOfMonth.toISOString(),
           endDate: endOfMonth.toISOString(),
           projectId: parseInt(project.id, 10),

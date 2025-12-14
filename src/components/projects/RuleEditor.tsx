@@ -53,7 +53,7 @@ export function RuleEditor({ project, isOpen, onClose }: RuleEditorProps) {
     if (!project) return;
     setLoading(true);
     try {
-      const fetchedRules = await window.api.rules.getByProject(project.id);
+      const fetchedRules = await window.electronAPI.rules.getByProject(project.id);
       setRules(fetchedRules);
     } catch (error) {
       console.error('Failed to fetch rules:', error);
@@ -67,7 +67,7 @@ export function RuleEditor({ project, isOpen, onClose }: RuleEditorProps) {
     if (!project || !newRulePattern.trim()) return;
 
     try {
-      await window.api.rules.create({
+      await window.electronAPI.rules.create({
         projectId: project.id,
         type: newRuleType,
         pattern: newRulePattern.trim(),
@@ -86,7 +86,7 @@ export function RuleEditor({ project, isOpen, onClose }: RuleEditorProps) {
     if (!confirm('このルールを削除しますか？')) return;
 
     try {
-      await window.api.rules.delete(ruleId);
+      await window.electronAPI.rules.delete(ruleId);
       fetchRules();
     } catch (error) {
       console.error('Failed to delete rule:', error);
@@ -96,7 +96,7 @@ export function RuleEditor({ project, isOpen, onClose }: RuleEditorProps) {
   // ルール有効/無効切替
   const handleToggleRule = async (rule: Rule) => {
     try {
-      await window.api.rules.toggleActive(rule.id);
+      await window.electronAPI.rules.toggleActive(rule.id);
       fetchRules();
     } catch (error) {
       console.error('Failed to toggle rule:', error);
@@ -110,9 +110,9 @@ export function RuleEditor({ project, isOpen, onClose }: RuleEditorProps) {
     setIsTesting(true);
     try {
       // 現在のウィンドウ情報を取得
-      const windowInfo = await window.api.windowMonitor.getActiveWindow();
+      const windowInfo = await window.electronAPI.windowMonitor.getActiveWindow();
 
-      const result = await window.api.rules.test({
+      const result = await window.electronAPI.rules.test({
         ruleType: newRuleType,
         pattern: newRulePattern.trim(),
         testData: {

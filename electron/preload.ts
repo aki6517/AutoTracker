@@ -141,4 +141,4 @@ const electronAPI: ElectronAPI = {
 };
 
 // contextBridgeで安全にAPIを公開
-contextBridge.exposeInMainWorld('api', electronAPI);
+contextBridge.exposeInMainWorld('electronAPI', electronAPI);

@@ -18,11 +18,11 @@ function Dashboard() {
   const fetchData = useCallback(async () => {
     try {
       // トラッキングステータス
-      const status = await window.api.tracking.getStatus();
+      const status = await window.electronAPI.tracking.getStatus();
       setTrackingStatus(status);
 
       // 今日のエントリー
-      const entries = await window.api.entries.getToday();
+      const entries = await window.electronAPI.entries.getToday();
       setTodayEntries(entries);
 
       // 統計を計算
@@ -69,14 +69,14 @@ function Dashboard() {
   // イベントリスナー
   useEffect(() => {
     // エントリー作成時
-    const unsubscribeCreated = window.api.tracking.onEntryCreated((entry) => {
+    const unsubscribeCreated = window.electronAPI.tracking.onEntryCreated((entry) => {
       console.log('Entry created:', entry);
       setTodayEntries((prev) => [entry, ...prev]);
       fetchData();
     });
 
     // エントリー更新時
-    const unsubscribeUpdated = window.api.tracking.onEntryUpdated((entry) => {
+    const unsubscribeUpdated = window.electronAPI.tracking.onEntryUpdated((entry) => {
       console.log('Entry updated:', entry);
       setTodayEntries((prev) =>
         prev.map((e) => (e.id === entry.id ? entry : e))
@@ -93,7 +93,7 @@ function Dashboard() {
   // トラッキング制御
   const handleStart = async () => {
     try {
-      const result = await window.api.tracking.start();
+      const result = await window.electronAPI.tracking.start();
       if (result.success) {
         setTrackingStatus(result.status);
         fetchData();
@@ -105,7 +105,7 @@ function Dashboard() {
 
   const handleStop = async () => {
     try {
-      const result = await window.api.tracking.stop();
+      const result = await window.electronAPI.tracking.stop();
       if (result.success) {
         setTrackingStatus({
           isRunning: false,
@@ -126,7 +126,7 @@ function Dashboard() {
 
   const handlePause = async () => {
     try {
-      const result = await window.api.tracking.pause();
+      const result = await window.electronAPI.tracking.pause();
       if (result.success) {
         setTrackingStatus(result.status);
       }
@@ -137,7 +137,7 @@ function Dashboard() {
 
   const handleResume = async () => {
     try {
-      const result = await window.api.tracking.resume();
+      const result = await window.electronAPI.tracking.resume();
       if (result.success) {
         setTrackingStatus(result.status);
       }

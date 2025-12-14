@@ -27,7 +27,7 @@ function Reports() {
     setIsLoading(true);
     try {
       const dateStr = currentDate.toISOString().split('T')[0];
-      const result = await window.api.reports.generateDaily({ date: dateStr });
+      const result = await window.electronAPI.reports.generateDaily({ date: dateStr });
       setReport(result);
     } catch (error) {
       console.error('Error fetching report:', error);

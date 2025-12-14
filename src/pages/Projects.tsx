@@ -41,7 +41,7 @@ function Projects() {
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await window.api.projects.getAll({ includeArchived: showArchived });
+      const result = await window.electronAPI.projects.getAll({ includeArchived: showArchived });
       setProjects(result);
       setError(null);
     } catch (err) {
@@ -66,7 +66,7 @@ function Projects() {
     budgetHours?: number;
   }) => {
     try {
-      await window.api.projects.create(data);
+      await window.electronAPI.projects.create(data);
       setShowForm(false);
       fetchProjects();
     } catch (err) {
@@ -86,7 +86,7 @@ function Projects() {
   }) => {
     if (!editingProject) return;
     try {
-      await window.api.projects.update(editingProject.id, data);
+      await window.electronAPI.projects.update(editingProject.id, data);
       setEditingProject(null);
       fetchProjects();
     } catch (err) {
@@ -99,7 +99,7 @@ function Projects() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await window.api.projects.delete(deleteTarget.id);
+      await window.electronAPI.projects.delete(deleteTarget.id);
       setDeleteTarget(null);
       fetchProjects();
     } catch (err) {
@@ -112,9 +112,9 @@ function Projects() {
   const handleArchive = async (project: Project) => {
     try {
       if (project.isArchived) {
-        await window.api.projects.restore(project.id);
+        await window.electronAPI.projects.restore(project.id);
       } else {
-        await window.api.projects.archive(project.id);
+        await window.electronAPI.projects.archive(project.id);
       }
       fetchProjects();
     } catch (err) {

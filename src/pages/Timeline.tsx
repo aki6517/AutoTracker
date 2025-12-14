@@ -29,7 +29,7 @@ function Timeline() {
       endOfDay.setHours(23, 59, 59, 999);
 
       // エントリーを取得
-      const fetchedEntries = await window.api.entries.getByDateRange({
+      const fetchedEntries = await window.electronAPI.entries.getByDateRange({
         startDate: startOfDay.toISOString(),
         endDate: endOfDay.toISOString(),
         projectId: filterProjectId ? parseInt(filterProjectId, 10) : undefined,
@@ -38,11 +38,11 @@ function Timeline() {
       setEntries(fetchedEntries);
 
       // プロジェクトを取得
-      const fetchedProjects = await window.api.projects.getAll();
+      const fetchedProjects = await window.electronAPI.projects.getAll();
       setProjects(fetchedProjects);
 
       // トラッキングステータスを取得
-      const status = await window.api.tracking.getStatus();
+      const status = await window.electronAPI.tracking.getStatus();
       setTrackingStatus(status);
     } catch (error) {
       console.error('Error fetching timeline data:', error);
@@ -69,14 +69,14 @@ function Timeline() {
       endTime?: string | null;
     }
   ) => {
-    await window.api.entries.update(id, data);
+    await window.electronAPI.entries.update(id, data);
     fetchData();
   };
 
   // エントリー削除
   const handleDelete = async (entry: EntryWithProject) => {
     if (confirm(`「${entry.projectName ?? '未分類'}」のエントリーを削除しますか？`)) {
-      await window.api.entries.delete(entry.id);
+      await window.electronAPI.entries.delete(entry.id);
       fetchData();
     }
   };
@@ -98,7 +98,7 @@ function Timeline() {
       splitDate.setHours(hours, minutes, 0, 0);
 
       if (splitDate > startTime && splitDate < endTime) {
-        await window.api.entries.split({
+        await window.electronAPI.entries.split({
           entryId: entry.id,
           splitTime: splitDate.toISOString(),
         });
@@ -117,7 +117,7 @@ function Timeline() {
     const endTime = new Date(startTime);
     endTime.setHours(endTime.getHours() + 1);
 
-    const entry = await window.api.entries.create({
+    const entry = await window.electronAPI.entries.create({
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
       isWork: true,

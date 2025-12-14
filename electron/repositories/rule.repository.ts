@@ -16,12 +16,12 @@ export interface Rule {
 // DBの行データをRuleオブジェクトに変換
 function rowToRule(row: DbRule): Rule {
   return {
-    id: row.id,
-    projectId: row.project_id,
-    ruleType: row.rule_type as Rule['ruleType'],
+    id: String(row.id),
+    projectId: String(row.project_id),
+    ruleType: row.type as Rule['ruleType'],
     pattern: row.pattern,
     priority: row.priority,
-    isActive: row.is_active === 1,
+    isActive: row.is_enabled === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -34,9 +34,9 @@ export class RuleRepository {
   findByProject(projectId: string, activeOnly = false): Rule[] {
     const db = getDatabase();
     const query = activeOnly
-      ? 'SELECT * FROM rules WHERE project_id = ? AND is_active = 1 ORDER BY priority DESC'
+      ? 'SELECT * FROM rules WHERE project_id = ? AND is_enabled = 1 ORDER BY priority DESC'
       : 'SELECT * FROM rules WHERE project_id = ? ORDER BY priority DESC';
-    const rows = db.prepare(query).all(projectId) as DbRule[];
+    const rows = db.prepare(query).all(parseInt(projectId, 10)) as DbRule[];
     return rows.map(rowToRule);
   }
 
@@ -46,7 +46,7 @@ export class RuleRepository {
   findAll(activeOnly = false): Rule[] {
     const db = getDatabase();
     const query = activeOnly
-      ? 'SELECT * FROM rules WHERE is_active = 1 ORDER BY priority DESC'
+      ? 'SELECT * FROM rules WHERE is_enabled = 1 ORDER BY priority DESC'
       : 'SELECT * FROM rules ORDER BY priority DESC';
     const rows = db.prepare(query).all() as DbRule[];
     return rows.map(rowToRule);
@@ -57,7 +57,7 @@ export class RuleRepository {
    */
   findById(id: string): Rule | null {
     const db = getDatabase();
-    const row = db.prepare('SELECT * FROM rules WHERE id = ?').get(id) as DbRule | undefined;
+    const row = db.prepare('SELECT * FROM rules WHERE id = ?').get(parseInt(id, 10)) as DbRule | undefined;
     return row ? rowToRule(row) : null;
   }
 
@@ -72,7 +72,6 @@ export class RuleRepository {
     isActive?: boolean;
   }): Rule {
     const db = getDatabase();
-    const id = crypto.randomUUID();
     const now = new Date().toISOString();
     
     // 優先度が指定されていない場合は、プロジェクト内の最大優先度+1
@@ -84,12 +83,11 @@ export class RuleRepository {
       priority = (maxPriority.max_priority ?? 0) + 1;
     }
 
-    db.prepare(
-      `INSERT INTO rules (id, project_id, rule_type, pattern, priority, is_active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    const result = db.prepare(
+      `INSERT INTO rules (project_id, type, pattern, priority, is_enabled, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
     ).run(
-      id,
-      data.projectId,
+      parseInt(data.projectId, 10),
       data.ruleType,
       data.pattern,
       priority,
@@ -98,7 +96,7 @@ export class RuleRepository {
       now
     );
 
-    return this.findById(id)!;
+    return this.findById(String(result.lastInsertRowid))!;
   }
 
   /**
@@ -121,7 +119,7 @@ export class RuleRepository {
     const values: (string | number)[] = [];
 
     if (data.ruleType !== undefined) {
-      updates.push('rule_type = ?');
+      updates.push('type = ?');
       values.push(data.ruleType);
     }
     if (data.pattern !== undefined) {
@@ -133,13 +131,13 @@ export class RuleRepository {
       values.push(data.priority);
     }
     if (data.isActive !== undefined) {
-      updates.push('is_active = ?');
+      updates.push('is_enabled = ?');
       values.push(data.isActive ? 1 : 0);
     }
 
     if (updates.length === 0) return existing;
 
-    values.push(id);
+    values.push(parseInt(id, 10));
     db.prepare(`UPDATE rules SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 
     return this.findById(id);
@@ -150,7 +148,7 @@ export class RuleRepository {
    */
   delete(id: string): boolean {
     const db = getDatabase();
-    const result = db.prepare('DELETE FROM rules WHERE id = ?').run(id);
+    const result = db.prepare('DELETE FROM rules WHERE id = ?').run(parseInt(id, 10));
     return result.changes > 0;
   }
 
@@ -170,7 +168,7 @@ export class RuleRepository {
     const db = getDatabase();
     const result = db.prepare(
       'SELECT COUNT(*) as count FROM rules WHERE project_id = ?'
-    ).get(projectId) as { count: number };
+    ).get(parseInt(projectId, 10)) as { count: number };
     return result.count;
   }
 
@@ -184,7 +182,7 @@ export class RuleRepository {
     // 高い優先度から順に設定
     const transaction = db.transaction(() => {
       ruleIds.forEach((id, index) => {
-        stmt.run(ruleIds.length - index, id);
+        stmt.run(ruleIds.length - index, parseInt(id, 10));
       });
     });
     

@@ -5,7 +5,7 @@ import type { Project, DbProject } from '../database/types.js';
 // DBの行データをProjectオブジェクトに変換
 function rowToProject(row: DbProject): Project {
   return {
-    id: row.id,
+    id: String(row.id),
     name: row.name,
     clientName: row.client_name ?? undefined,
     color: row.color,
@@ -52,14 +52,12 @@ export class ProjectRepository {
     budgetHours?: number;
   }): Project {
     const db = getDatabase();
-    const id = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    db.prepare(
-      `INSERT INTO projects (id, name, client_name, color, icon, hourly_rate, budget_hours, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    const result = db.prepare(
+      `INSERT INTO projects (name, client_name, color, icon, hourly_rate, budget_hours, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
-      id,
       data.name,
       data.clientName ?? null,
       data.color,
@@ -70,7 +68,7 @@ export class ProjectRepository {
       now
     );
 
-    return this.findById(id)!;
+    return this.findById(String(result.lastInsertRowid))!;
   }
 
   /**

@@ -16,7 +16,7 @@ export interface DatabaseConfig {
 // ========================================
 
 export interface DbProject {
-  id: string;
+  id: number;
   name: string;
   client_name: string | null;
   color: string;
@@ -45,12 +45,12 @@ export interface DbEntry {
 }
 
 export interface DbRule {
-  id: string;
-  project_id: string;
-  rule_type: string;
+  id: number;
+  project_id: number;
+  type: string;
   pattern: string;
   priority: number;
-  is_active: number;
+  is_enabled: number;
   created_at: string;
   updated_at: string;
 }

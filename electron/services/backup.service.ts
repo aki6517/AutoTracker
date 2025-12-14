@@ -64,23 +64,15 @@ export class BackupService {
     console.log(`[BackupService] Creating backup: ${filename}`);
 
     try {
-      // SQLiteのバックアップ機能を使用
-      const backupDb = db.backup(filePath);
-      await new Promise<void>((resolve, reject) => {
-        const step = () => {
-          const more = backupDb.step(100);
-          if (more) {
-            setImmediate(step);
-          } else {
-            resolve();
-          }
-        };
-        try {
-          step();
-        } catch (error) {
-          reject(error);
-        }
-      });
+      // ディレクトリを確認
+      this.ensureBackupDir();
+
+      // 現在のDBファイルのパスを取得
+      const currentDbPath = path.join(app.getPath('userData'), 'autotracker.db');
+      
+      // ファイルコピーでバックアップを作成
+      // better-sqlite3のbackup APIは複雑なため、シンプルなファイルコピーを使用
+      fs.copyFileSync(currentDbPath, filePath);
 
       // バックアップの整合性を確認
       const isValid = await this.verifyBackup(filePath);

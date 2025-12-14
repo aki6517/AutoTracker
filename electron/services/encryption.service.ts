@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import { app } from 'electron';
 
 // AES-256-GCM暗号化設定
 const ALGORITHM = 'aes-256-gcm';
@@ -23,7 +24,6 @@ export class EncryptionService {
    * 暗号化キーをロードまたは新規作成
    */
   private loadOrCreateKey(): Buffer {
-    const { app } = require('electron');
     const keyPath = path.join(app.getPath('userData'), '.encryption_key');
 
     try {

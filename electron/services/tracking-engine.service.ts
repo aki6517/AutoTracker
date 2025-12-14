@@ -434,23 +434,37 @@ export class TrackingEngine {
       projectName = ruleResult.projectName;
       confidence = ruleResult.confidence;
       reasoning = 'ルールマッチング';
-    } else if (aiJudgmentService.hasApiKey()) {
-      // オフラインモードチェック
-      const networkMonitor = getNetworkMonitor();
-      if (!networkMonitor.getIsOnline()) {
-        logger.info('TrackingEngine', 'Offline mode: Skipping AI judgment, using rule matching only');
-        // オフライン時はルールマッチング結果のみ使用（マッチしなかった場合はそのまま）
-      } else {
-        // AI判定を使用
-        const projects = projectRepository.findAll(false);
-        const aiResult = await aiJudgmentService.judgeProject(screenContext, projects);
+      console.log('[TrackingEngine] ルールマッチ成功:', { projectId, projectName, confidence });
+    } else {
+      console.log('[TrackingEngine] ルールマッチなし, AI判定を試行...');
+      console.log('[TrackingEngine] APIキー設定済み:', aiJudgmentService.hasApiKey());
+      
+      if (aiJudgmentService.hasApiKey()) {
+        // オフラインモードチェック
+        const networkMonitor = getNetworkMonitor();
+        const isOnline = networkMonitor.getIsOnline();
+        console.log('[TrackingEngine] オンライン状態:', isOnline);
+        
+        if (!isOnline) {
+          logger.info('TrackingEngine', 'Offline mode: Skipping AI judgment, using rule matching only');
+        } else {
+          // AI判定を使用
+          const projects = projectRepository.findAll(false);
+          console.log('[TrackingEngine] AI判定開始, プロジェクト数:', projects.length);
+          console.log('[TrackingEngine] スクリーンコンテキスト:', screenContext);
+          
+          const aiResult = await aiJudgmentService.judgeProject(screenContext, projects);
+          console.log('[TrackingEngine] AI判定結果:', aiResult);
 
-        if (aiResult.projectId) {
-          projectId = parseInt(aiResult.projectId, 10);
-          projectName = aiResult.projectName;
-          confidence = aiResult.confidence;
-          reasoning = aiResult.reasoning;
+          if (aiResult.projectId) {
+            projectId = parseInt(aiResult.projectId, 10);
+            projectName = aiResult.projectName;
+            confidence = aiResult.confidence;
+            reasoning = aiResult.reasoning;
+          }
         }
+      } else {
+        console.log('[TrackingEngine] APIキーが設定されていないためAI判定をスキップ');
       }
     }
 

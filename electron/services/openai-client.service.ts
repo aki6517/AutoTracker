@@ -147,7 +147,7 @@ export class OpenAIClient {
         model,
         messages,
         temperature: options?.temperature ?? 0.3,
-        max_tokens: options?.maxTokens ?? 500,
+        max_completion_tokens: options?.maxTokens ?? 500,
       });
 
       const choice = response.choices[0];

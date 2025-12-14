@@ -3,6 +3,8 @@
  * レート制限（60req/min）に対応するためのキュー管理
  */
 
+import crypto from 'crypto';
+
 interface QueuedRequest<T> {
   id: string;
   execute: () => Promise<T>;

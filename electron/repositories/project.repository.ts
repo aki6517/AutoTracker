@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { getDatabase } from '../database/index.js';
 import type { Project, DbProject } from '../database/types.js';
 

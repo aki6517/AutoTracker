@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { getDatabase } from '../database/index.js';
 import type { DbRule } from '../database/types.js';
 

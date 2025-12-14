@@ -146,7 +146,6 @@ export class OpenAIClient {
       const response = await client.chat.completions.create({
         model,
         messages,
-        temperature: options?.temperature ?? 0.3,
         max_completion_tokens: options?.maxTokens ?? 500,
       });
 

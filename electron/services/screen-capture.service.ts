@@ -52,28 +52,26 @@ export class ScreenCaptureService {
     const rawBuffer = await this.captureScreen();
     
     // 画像を圧縮
-    const { compressed, thumbnail } = await this.compressImage(rawBuffer);
+    const { compressed } = await this.compressImage(rawBuffer);
     
     // 保存パスを生成
     const timestamp = new Date();
     const dateDir = this.getDateDir(timestamp);
     const fileId = crypto.randomUUID();
     const filePath = path.join(dateDir, `${fileId}.enc`);
-    const thumbnailPath = path.join(dateDir, `${fileId}_thumb.enc`);
     
     // 暗号化して保存
     const encryptionService = getEncryptionService();
     await encryptionService.encryptBufferToFile(compressed, filePath);
-    await encryptionService.encryptBufferToFile(thumbnail, thumbnailPath);
     
     // メタデータをDBに保存
     const capturedAt = timestamp.toISOString();
-    this.saveToDatabase(fileId, entryId, filePath, thumbnailPath, capturedAt, metadata);
+    this.saveToDatabase(entryId, filePath, capturedAt, metadata);
     
     return {
       id: fileId,
       filePath,
-      thumbnailPath,
+      thumbnailPath: filePath, // 同じファイルを使用
       capturedAt,
       metadata,
       fileSize: compressed.length,
@@ -144,24 +142,22 @@ export class ScreenCaptureService {
    * DBにメタデータを保存
    */
   private saveToDatabase(
-    id: string,
     entryId: string,
     filePath: string,
-    thumbnailPath: string,
     capturedAt: string,
     metadata: CaptureMetadata
   ): void {
     const db = getDatabase();
     db.prepare(
-      `INSERT INTO screenshots (id, entry_id, file_path, thumbnail_path, is_blurred, captured_at, metadata)
-       VALUES (?, ?, ?, ?, 0, ?, ?)`
+      `INSERT INTO screenshots (entry_id, file_path, timestamp, window_title, url, app_name)
+       VALUES (?, ?, ?, ?, ?, ?)`
     ).run(
-      id,
       entryId,
       filePath,
-      thumbnailPath,
       capturedAt,
-      JSON.stringify(metadata)
+      metadata.windowTitle ?? null,
+      metadata.url ?? null,
+      metadata.appName ?? null
     );
   }
 
@@ -185,22 +181,10 @@ export class ScreenCaptureService {
   }
 
   /**
-   * サムネイルを取得（復号化）
+   * サムネイルを取得（メイン画像と同じを返す）
    */
   async getThumbnail(id: string): Promise<{ data: Buffer; mimeType: string } | null> {
-    const db = getDatabase();
-    const row = db.prepare('SELECT thumbnail_path FROM screenshots WHERE id = ?').get(id) as { thumbnail_path: string } | undefined;
-    
-    if (!row || !row.thumbnail_path) return null;
-    
-    try {
-      const encryptionService = getEncryptionService();
-      const decrypted = await encryptionService.decryptFile(row.thumbnail_path);
-      return { data: decrypted, mimeType: 'image/jpeg' };
-    } catch (error) {
-      console.error('Failed to decrypt thumbnail:', error);
-      return null;
-    }
+    return this.getScreenshot(id);
   }
 
   /**
@@ -209,7 +193,7 @@ export class ScreenCaptureService {
   getByEntryId(entryId: string): DbScreenshot[] {
     const db = getDatabase();
     return db.prepare(
-      'SELECT * FROM screenshots WHERE entry_id = ? ORDER BY captured_at ASC'
+      'SELECT * FROM screenshots WHERE entry_id = ? ORDER BY timestamp ASC'
     ).all(entryId) as DbScreenshot[];
   }
 
@@ -218,9 +202,8 @@ export class ScreenCaptureService {
    */
   async delete(id: string): Promise<boolean> {
     const db = getDatabase();
-    const row = db.prepare('SELECT file_path, thumbnail_path FROM screenshots WHERE id = ?').get(id) as {
+    const row = db.prepare('SELECT file_path FROM screenshots WHERE id = ?').get(id) as {
       file_path: string;
-      thumbnail_path: string | null;
     } | undefined;
     
     if (!row) return false;
@@ -228,9 +211,6 @@ export class ScreenCaptureService {
     // ファイルを削除
     try {
       await fs.promises.unlink(row.file_path);
-      if (row.thumbnail_path) {
-        await fs.promises.unlink(row.thumbnail_path);
-      }
     } catch (error) {
       console.warn('Failed to delete screenshot files:', error);
     }
@@ -251,16 +231,13 @@ export class ScreenCaptureService {
 
     // 削除対象を取得
     const oldScreenshots = db.prepare(
-      'SELECT id, file_path, thumbnail_path FROM screenshots WHERE captured_at < ?'
-    ).all(cutoffStr) as { id: string; file_path: string; thumbnail_path: string | null }[];
+      'SELECT id, file_path FROM screenshots WHERE timestamp < ?'
+    ).all(cutoffStr) as { id: string; file_path: string }[];
 
     let deletedCount = 0;
     for (const ss of oldScreenshots) {
       try {
         await fs.promises.unlink(ss.file_path);
-        if (ss.thumbnail_path) {
-          await fs.promises.unlink(ss.thumbnail_path);
-        }
         deletedCount++;
       } catch (error) {
         console.warn(`Failed to delete screenshot file: ${ss.file_path}`, error);
@@ -268,7 +245,7 @@ export class ScreenCaptureService {
     }
 
     // DBから削除
-    db.prepare('DELETE FROM screenshots WHERE captured_at < ?').run(cutoffStr);
+    db.prepare('DELETE FROM screenshots WHERE timestamp < ?').run(cutoffStr);
 
     // 空のディレクトリを削除
     await this.cleanupEmptyDirs();

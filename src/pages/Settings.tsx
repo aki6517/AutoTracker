@@ -54,7 +54,7 @@ function AISettingsTab({
   useEffect(() => {
     const checkApiKey = async () => {
       try {
-        const hasKey = await window.api.ai.hasApiKey();
+        const hasKey = await window.electronAPI.ai.hasApiKey();
         setHasApiKey(hasKey);
       } catch (error) {
         console.error('Error checking API key:', error);
@@ -69,7 +69,7 @@ function AISettingsTab({
     
     setIsSavingKey(true);
     try {
-      await window.api.ai.setApiKey(apiKey.trim());
+      await window.electronAPI.ai.setApiKey(apiKey.trim());
       setHasApiKey(true);
       setApiKey('');
       setTestResult(null);
@@ -85,7 +85,7 @@ function AISettingsTab({
     setIsTestingKey(true);
     setTestResult(null);
     try {
-      const result = await window.api.ai.testApiKey();
+      const result = await window.electronAPI.ai.testApiKey();
       setTestResult(result);
     } catch (error) {
       setTestResult({ valid: false, error: (error as Error).message });
@@ -253,7 +253,7 @@ function Settings() {
   const fetchSettings = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await window.api.settings.get();
+      const result = await window.electronAPI.settings.get();
       setSettings(result);
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -288,7 +288,7 @@ function Settings() {
     if (!settings) return;
     setIsSaving(true);
     try {
-      await window.api.settings.update(settings);
+      await window.electronAPI.settings.update(settings);
       setHasChanges(false);
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -301,7 +301,7 @@ function Settings() {
   const handleReset = async () => {
     if (!confirm('すべての設定をデフォルトに戻しますか？')) return;
     try {
-      const result = await window.api.settings.reset();
+      const result = await window.electronAPI.settings.reset();
       setSettings(result);
       setHasChanges(false);
     } catch (error) {

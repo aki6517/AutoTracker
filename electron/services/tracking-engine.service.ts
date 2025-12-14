@@ -317,6 +317,13 @@ export class TrackingEngine {
         return;
       }
 
+      // AutoTrackerアプリ自体はスキップ（変化なしとして扱う）
+      if (windowMetadata.appName === 'Electron' || 
+          windowMetadata.windowTitle?.includes('AutoTracker')) {
+        console.log('[TrackingEngine] AutoTracker app detected. Skipping analysis.');
+        return;
+      }
+
       console.log('[TrackingEngine] Capturing screenshot...');
 
       // スクリーンコンテキストを作成
@@ -363,6 +370,12 @@ export class TrackingEngine {
     try {
       const windowMonitorService = getWindowMonitorService();
       const windowMetadata = await windowMonitorService.getActiveWindow();
+
+      // AutoTrackerアプリ自体はスキップ
+      if (windowMetadata.appName === 'Electron' || 
+          windowMetadata.windowTitle?.includes('AutoTracker')) {
+        return;
+      }
 
       const screenContext: ScreenContext = {
         windowTitle: windowMetadata.windowTitle,

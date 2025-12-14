@@ -42,6 +42,7 @@ const electronAPI: ElectronAPI = {
     delete: (id) => ipcRenderer.invoke('project:delete', id),
     archive: (id) => ipcRenderer.invoke('project:archive', id),
     restore: (id) => ipcRenderer.invoke('project:restore', id),
+    generateRules: (id) => ipcRenderer.invoke('project:generate-rules', id),
   },
 
   // エントリー

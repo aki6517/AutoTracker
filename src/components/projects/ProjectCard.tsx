@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreVertical, Pencil, Trash2, Archive, RotateCcw, Settings, Clock } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2, Archive, RotateCcw, Settings, Clock, Sparkles } from 'lucide-react';
 import type { Project } from '../../../shared/types/api';
 
 interface ProjectCardProps {
@@ -118,6 +118,17 @@ export function ProjectCard({
                   >
                     <Settings size={16} />
                     ルール設定
+                  </button>
+                  <button
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-800 flex items-center gap-2 text-amber-400"
+                    onClick={async () => {
+                      const result = await window.electronAPI.projects.generateRules(project.id);
+                      alert(`${result.createdCount}件のルールを自動生成: ${result.keywords.join(', ')}`);
+                      setActiveMenu(false);
+                    }}
+                  >
+                    <Sparkles size={16} />
+                    自動ルール生成
                   </button>
                   <button
                     className="w-full px-4 py-2 text-left text-sm hover:bg-gray-800 flex items-center gap-2"

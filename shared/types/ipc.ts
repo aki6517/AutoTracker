@@ -60,6 +60,7 @@ export interface ElectronAPI {
     delete: (id: string) => Promise<{ success: boolean }>;
     archive: (id: string) => Promise<Project>;
     restore: (id: string) => Promise<Project>;
+    generateRules: (id: string) => Promise<{ success: boolean; createdCount: number; keywords: string[] }>;
   };
 
   // エントリー

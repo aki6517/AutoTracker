@@ -131,7 +131,44 @@ export function initializeIpcHandlers() {
       if (currentCount >= MAX_PROJECTS) {
         throw new Error(`Maximum number of projects (${MAX_PROJECTS}) reached. Archive or delete existing projects first.`);
       }
-      return projectRepository.create(data);
+      const project = projectRepository.create(data);
+
+      // 自動ルール生成: プロジェクト名とクライアント名からキーワードルールを作成
+      const keywords: string[] = [];
+      
+      // プロジェクト名からキーワードを抽出（アンダースコアやスペースで分割）
+      const nameKeywords = data.name
+        .split(/[_\s・・]+/)
+        .filter(k => k.length >= 2)
+        .map(k => k.trim());
+      keywords.push(...nameKeywords);
+
+      // クライアント名があれば追加
+      if (data.clientName) {
+        const clientKeywords = data.clientName
+          .split(/[_\s・・]+/)
+          .filter(k => k.length >= 2)
+          .map(k => k.trim());
+        keywords.push(...clientKeywords);
+      }
+
+      // 重複を除去してルールを作成
+      const uniqueKeywords = [...new Set(keywords)];
+      for (const keyword of uniqueKeywords) {
+        try {
+          ruleRepository.create({
+            projectId: project.id,
+            ruleType: 'keyword',
+            pattern: keyword,
+            isActive: true,
+          });
+        } catch (ruleError) {
+          console.warn(`Failed to create auto rule for keyword: ${keyword}`, ruleError);
+        }
+      }
+
+      console.log(`[Project] Created with ${uniqueKeywords.length} auto-generated rules:`, uniqueKeywords);
+      return project;
     } catch (error) {
       console.error('Error creating project:', error);
       throw error;
@@ -190,6 +227,65 @@ export function initializeIpcHandlers() {
       return restored;
     } catch (error) {
       console.error('Error restoring project:', error);
+      throw error;
+    }
+  });
+
+  // 既存プロジェクトに自動ルールを生成
+  ipcMain.handle('project:generate-rules', async (_event, id: string) => {
+    try {
+      const project = projectRepository.findById(id);
+      if (!project) {
+        throw new Error('Project not found');
+      }
+
+      const keywords: string[] = [];
+      
+      // プロジェクト名からキーワードを抽出
+      const nameKeywords = project.name
+        .split(/[_\s・・]+/)
+        .filter(k => k.length >= 2)
+        .map(k => k.trim());
+      keywords.push(...nameKeywords);
+
+      // クライアント名があれば追加
+      if (project.clientName) {
+        const clientKeywords = project.clientName
+          .split(/[_\s・・]+/)
+          .filter(k => k.length >= 2)
+          .map(k => k.trim());
+        keywords.push(...clientKeywords);
+      }
+
+      // 重複を除去
+      const uniqueKeywords = [...new Set(keywords)];
+      
+      // 既存ルールを取得
+      const existingRules = ruleRepository.findByProject(id);
+      const existingPatterns = new Set(existingRules.map(r => r.pattern.toLowerCase()));
+
+      // 新しいルールのみ作成
+      let createdCount = 0;
+      for (const keyword of uniqueKeywords) {
+        if (!existingPatterns.has(keyword.toLowerCase())) {
+          try {
+            ruleRepository.create({
+              projectId: id,
+              ruleType: 'keyword',
+              pattern: keyword,
+              isActive: true,
+            });
+            createdCount++;
+          } catch (ruleError) {
+            console.warn(`Failed to create auto rule for keyword: ${keyword}`, ruleError);
+          }
+        }
+      }
+
+      console.log(`[Project] Generated ${createdCount} new rules for project ${project.name}`);
+      return { success: true, createdCount, keywords: uniqueKeywords };
+    } catch (error) {
+      console.error('Error generating rules:', error);
       throw error;
     }
   });
